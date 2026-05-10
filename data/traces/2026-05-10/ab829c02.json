@@ -1,0 +1,56 @@
+{
+  "trace_id": "ab829c02",
+  "timestamp": "2026-05-10 11:33:35",
+  "user_input": "今天上海天气咋样？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1791,
+      "prompt_tokens": 787,
+      "completion_tokens": 62,
+      "has_tool_calls": true
+    },
+    {
+      "type": "tool_call",
+      "tool": "web_search",
+      "input": {
+        "query": "上海 天气 今天"
+      },
+      "output": "没搜到相关信息",
+      "latency_ms": 194
+    },
+    {
+      "type": "tool_call",
+      "tool": "get_current_time",
+      "input": {},
+      "output": "2026-05-10 19:33:37",
+      "latency_ms": 0
+    },
+    {
+      "type": "llm_call",
+      "latency_ms": 1548,
+      "prompt_tokens": 885,
+      "completion_tokens": 53,
+      "has_tool_calls": true
+    },
+    {
+      "type": "tool_call",
+      "tool": "web_search",
+      "input": {
+        "query": "上海 天气预报 2026年5月10日"
+      },
+      "output": "没搜到相关信息",
+      "latency_ms": 288
+    },
+    {
+      "type": "llm_call",
+      "latency_ms": 1190,
+      "prompt_tokens": 954,
+      "completion_tokens": 29,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 2770,
+  "total_latency_ms": 5011,
+  "agent_reply": "搜了半天没捞到，我这破网可能信号不好。你自个儿开个天气app瞅一眼吧，反正我这边看不见。"
+}

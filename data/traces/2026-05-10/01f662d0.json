@@ -1,0 +1,33 @@
+{
+  "trace_id": "01f662d0",
+  "timestamp": "2026-05-10 11:52:05",
+  "user_input": "那南京呢？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1381,
+      "prompt_tokens": 1149,
+      "completion_tokens": 46,
+      "has_tool_calls": true
+    },
+    {
+      "type": "tool_call",
+      "tool": "web_search",
+      "input": {
+        "query": "南京天气 今天"
+      },
+      "output": "标题：今天南京市天气_今日天气预报 - 墨迹天气\n内容：南京市今天实况：16度阴，湿度：57%，东北风：3级。白天：26度,多云。 夜间：晴，12度，季节交替，天气偏凉，墨迹天气建议您穿着单衣单裤，年老体弱者最好加一件贴身的背心或是\n\n标题：南京 - 百度\n内容：今天. 17 ~ 29°C 晴. 西南风3级. 优 · 11. 19 ~ 31°C 多云. 西南风3级. 轻度 · 12. 21 ~ 3",
+      "latency_ms": 667
+    },
+    {
+      "type": "llm_call",
+      "latency_ms": 1262,
+      "prompt_tokens": 1659,
+      "completion_tokens": 31,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 2885,
+  "total_latency_ms": 3310,
+  "agent_reply": "南京今天17到29度，晴转多云。比上海热一点，温差也大，晚上会凉。  咋的，想跑路了？"
+}

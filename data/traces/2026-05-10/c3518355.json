@@ -1,0 +1,33 @@
+{
+  "trace_id": "c3518355",
+  "timestamp": "2026-05-10 11:50:51",
+  "user_input": "今天上海的天气怎么样？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 2431,
+      "prompt_tokens": 786,
+      "completion_tokens": 46,
+      "has_tool_calls": true
+    },
+    {
+      "type": "tool_call",
+      "tool": "web_search",
+      "input": {
+        "query": "上海天气 今天"
+      },
+      "output": "标题：今天上海市天气_今日天气预报 - 墨迹天气\n内容：上海市今天实况：16度晴，湿度：56%，东南风：2级。白天：26度,阴。 夜间：阴，16度，季节交替，天气偏凉，墨迹天气建议您穿着单衣单裤，年老体弱者最好加一件贴身的背心或是马甲。\n\n标题：上海 - 百度\n内容：今天. 18 ~ 26°C 多云. 东南风3级. 优 · 11. 20 ~ 30°C 阴. 东南风3级. 良 · 12. 20 ~ ",
+      "latency_ms": 803
+    },
+    {
+      "type": "llm_call",
+      "latency_ms": 1377,
+      "prompt_tokens": 1099,
+      "completion_tokens": 41,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 1972,
+  "total_latency_ms": 4611,
+  "agent_reply": "18到26度，多云，东南风三级。不冷不热，适合出门溜达，不过下午可能要转阴。  你问这个干嘛，想把我发配去外滩卖艺？"
+}
