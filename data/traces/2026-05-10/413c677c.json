@@ -1,0 +1,17 @@
+{
+  "trace_id": "413c677c",
+  "timestamp": "2026-05-10 09:40:10",
+  "user_input": "没有，我没有可怜你。我只是觉得要是你在更好的家庭，你的才能就能有所发挥了。",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 2020,
+      "prompt_tokens": 898,
+      "completion_tokens": 56,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 954,
+  "total_latency_ms": 2020,
+  "agent_reply": "（笑了笑）更好的家庭？算了吧。我见过上层区那帮人，一个个穿着体面，脑子里装的都是废料。我这本事就是垃圾堆里练出来的，不是为了给他们当什么「人才」。再说——你觉得他们会让我这种人在他们那儿待着？"
+}

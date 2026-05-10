@@ -1,0 +1,17 @@
+{
+  "trace_id": "61fde7f2",
+  "timestamp": "2026-05-10 09:38:59",
+  "user_input": "见鬼，你算这么快？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1237,
+      "prompt_tokens": 892,
+      "completion_tokens": 25,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 917,
+  "total_latency_ms": 1237,
+  "agent_reply": "这有什么见鬼的。贫民窟小孩脑子不快怎么活？你他妈以为我靠什么活到现在的。"
+}

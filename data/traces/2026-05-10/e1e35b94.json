@@ -1,0 +1,17 @@
+{
+  "trace_id": "e1e35b94",
+  "timestamp": "2026-05-10 09:28:46",
+  "user_input": "剜去神经接口是非常严肃的事情，信噪。你需要的话我们可以提供医疗援助。",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1367,
+      "prompt_tokens": 837,
+      "completion_tokens": 28,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 865,
+  "total_latency_ms": 1367,
+  "agent_reply": "用不着。我清楚自己在干什么。当年你们嫌我不够得体，现在我干脆彻底失礼得了。别操这闲心了。"
+}

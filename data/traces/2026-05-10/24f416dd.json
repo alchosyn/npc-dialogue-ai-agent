@@ -1,0 +1,17 @@
+{
+  "trace_id": "24f416dd",
+  "timestamp": "2026-05-10 09:40:41",
+  "user_input": "看来你很难释怀这事儿",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1977,
+      "prompt_tokens": 1039,
+      "completion_tokens": 59,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 1098,
+  "total_latency_ms": 1977,
+  "agent_reply": "（沉默了两秒）释怀？我他妈早释怀了。只是懒得再去自取其辱。我现在过得挺好，黑几个终端赚点外快，没人管我穿什么说什么。——话说回来，你问这么多，该不会是中央架构组派来挖我的吧？"
+}

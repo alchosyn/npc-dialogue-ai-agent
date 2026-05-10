@@ -1,0 +1,17 @@
+{
+  "trace_id": "4e982c3d",
+  "timestamp": "2026-05-10 09:27:01",
+  "user_input": "我是明文。好久不见。",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1033,
+      "prompt_tokens": 711,
+      "completion_tokens": 14,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 725,
+  "total_latency_ms": 1033,
+  "agent_reply": "明文？那个中央架构组的人？  七年了，找我干嘛。"
+}

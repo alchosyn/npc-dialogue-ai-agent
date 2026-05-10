@@ -1,0 +1,17 @@
+{
+  "trace_id": "41d7aa5c",
+  "timestamp": "2026-05-10 09:21:19",
+  "user_input": "那应该不记得了",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 975,
+      "prompt_tokens": 797,
+      "completion_tokens": 11,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 808,
+  "total_latency_ms": 975,
+  "agent_reply": "不记得拉倒  我一向记不住不重要的人"
+}

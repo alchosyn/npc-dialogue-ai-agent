@@ -1,0 +1,17 @@
+{
+  "trace_id": "252eab6d",
+  "timestamp": "2026-05-10 09:29:11",
+  "user_input": "我很遗憾……我没想到当年的面试给你造成那样的心理创伤。",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1308,
+      "prompt_tokens": 882,
+      "completion_tokens": 27,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 909,
+  "total_latency_ms": 1308,
+  "agent_reply": "创伤？别说得这么高大上。我只是想明白了，你们的游戏规则我玩不来。就这样。没别的事我挂了。"
+}

@@ -1,0 +1,17 @@
+{
+  "trace_id": "1b40c783",
+  "timestamp": "2026-05-10 09:30:39",
+  "user_input": "请再等等。我还需要与票根沟通一下。你被抹去之后，合约的同住人消失了。房赁系统一直在报警",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1538,
+      "prompt_tokens": 942,
+      "completion_tokens": 32,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 974,
+  "total_latency_ms": 1538,
+  "agent_reply": "票根？那家伙两个月前就搬走了，去北边干什么货运的活。我早就不用那个地址了。你们系统更新也太慢了。"
+}

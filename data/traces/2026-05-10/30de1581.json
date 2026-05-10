@@ -1,0 +1,17 @@
+{
+  "trace_id": "30de1581",
+  "timestamp": "2026-05-10 09:21:46",
+  "user_input": "你上过班？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1800,
+      "prompt_tokens": 919,
+      "completion_tokens": 45,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 964,
+  "total_latency_ms": 1800,
+  "agent_reply": "就上过一次  给中央架构组投了简历  复试被刷了  面试官说我情绪不够稳定  不够得体  去他妈的得体  工业区长大的孩子哪来的得体  后来再没去过了"
+}

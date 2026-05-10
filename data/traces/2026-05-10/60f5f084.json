@@ -1,0 +1,17 @@
+{
+  "trace_id": "60f5f084",
+  "timestamp": "2026-05-10 09:22:30",
+  "user_input": "没有室友什么的？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1496,
+      "prompt_tokens": 1009,
+      "completion_tokens": 32,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 1041,
+  "total_latency_ms": 1496,
+  "agent_reply": "神经接口都让我自己挖掉了  你觉得我还能跟人合住？  我连街上那些人的脑信号都收不到了  彻底安静了"
+}

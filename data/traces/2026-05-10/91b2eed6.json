@@ -1,0 +1,17 @@
+{
+  "trace_id": "91b2eed6",
+  "timestamp": "2026-05-10 09:21:09",
+  "user_input": "信噪？还记得我们聊过什么吗",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1370,
+      "prompt_tokens": 763,
+      "completion_tokens": 25,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 788,
+  "total_latency_ms": 1370,
+  "agent_reply": "我记性还行 不过你这话说得太模糊了  你是上次在暗网聊过那个 还是刚认识"
+}

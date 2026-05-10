@@ -1,0 +1,17 @@
+{
+  "trace_id": "9c1a4bd3",
+  "timestamp": "2026-05-10 09:22:16",
+  "user_input": "哎……后来你就一直待在这间屋子里？你一个人？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1050,
+      "prompt_tokens": 981,
+      "completion_tokens": 20,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 1001,
+  "total_latency_ms": 1050,
+  "agent_reply": "不然呢 这间破屋子就是我的全部世界  有网 有吃的 够活"
+}

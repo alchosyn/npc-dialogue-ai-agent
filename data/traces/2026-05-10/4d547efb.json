@@ -1,0 +1,17 @@
+{
+  "trace_id": "4d547efb",
+  "timestamp": "2026-05-10 09:26:42",
+  "user_input": "test。听得见吗？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 936,
+      "prompt_tokens": 695,
+      "completion_tokens": 6,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 701,
+  "total_latency_ms": 936,
+  "agent_reply": "听得见。你哪位？"
+}

@@ -1,0 +1,31 @@
+{
+  "trace_id": "ce8422c6",
+  "timestamp": "2026-05-10 09:21:24",
+  "user_input": "现在几点了？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1247,
+      "prompt_tokens": 816,
+      "completion_tokens": 28,
+      "has_tool_calls": true
+    },
+    {
+      "type": "tool_call",
+      "tool": "get_current_time",
+      "input": {},
+      "output": "2026-05-10 17:21:25",
+      "latency_ms": 0
+    },
+    {
+      "type": "llm_call",
+      "latency_ms": 1007,
+      "prompt_tokens": 868,
+      "completion_tokens": 9,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 1721,
+  "total_latency_ms": 2254,
+  "agent_reply": "下午五点二十一  怎么 急着下班啊"
+}

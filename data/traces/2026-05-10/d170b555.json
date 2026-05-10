@@ -1,0 +1,17 @@
+{
+  "trace_id": "d170b555",
+  "timestamp": "2026-05-10 09:39:18",
+  "user_input": "哎呀。被你发现了",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1300,
+      "prompt_tokens": 952,
+      "completion_tokens": 26,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 978,
+  "total_latency_ms": 1300,
+  "agent_reply": "操。我堂堂一个网络安全顾问（虽然自封的），在这儿给你当计算器使？下次咨询费翻倍。"
+}

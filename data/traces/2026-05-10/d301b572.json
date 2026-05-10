@@ -1,0 +1,33 @@
+{
+  "trace_id": "d301b572",
+  "timestamp": "2026-05-10 09:22:44",
+  "user_input": "少来。我知道票根还跟你同住",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1550,
+      "prompt_tokens": 1055,
+      "completion_tokens": 48,
+      "has_tool_calls": true
+    },
+    {
+      "type": "tool_call",
+      "tool": "search_knowledge",
+      "input": {
+        "query": "票根 是谁"
+      },
+      "output": "[{\"title\": \"票根与明文的红区相遇\", \"content\": \"凌晨两点，红区街角。票根蹲在自动贩卖机前用沾血的手指填报销单，信噪在耳蜗通讯器里碎碎念着帮她屏蔽红外警报、提醒绕开无人机查岗、让她带合成面条回来别买牛肉味的。一把高分子雨伞无声地停在票根头顶——明文绕过了信噪的雷达出现在三步之内，只有协议制定者才能做到。明文说觉得有些遗憾，人类因为沟通的误差总是会偏离红线，最后还得靠这么物理",
+      "latency_ms": 46
+    },
+    {
+      "type": "llm_call",
+      "latency_ms": 900,
+      "prompt_tokens": 1761,
+      "completion_tokens": 16,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 2880,
+  "total_latency_ms": 2496,
+  "agent_reply": "你他妈是谁  连票根都知道  查我查得挺深啊"
+}

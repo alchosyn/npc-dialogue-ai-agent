@@ -1,0 +1,17 @@
+{
+  "trace_id": "fe170082",
+  "timestamp": "2026-05-10 09:40:22",
+  "user_input": "什么意思？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 2133,
+      "prompt_tokens": 960,
+      "completion_tokens": 69,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 1029,
+  "total_latency_ms": 2133,
+  "agent_reply": "面试那事儿呗。中央架构组，记得不？技术面全过，项目随你挑。结果人事那女的跟我说——「信噪小姐，你的技术无可挑剔，但你的风格...呃...不太适合我们的企业文化。」翻译过来就是：你不够体面，不会陪笑，不会把领带打得漂亮。"
+}

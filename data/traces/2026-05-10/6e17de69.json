@@ -1,0 +1,17 @@
+{
+  "trace_id": "6e17de69",
+  "timestamp": "2026-05-10 09:39:10",
+  "user_input": "134*7868",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1104,
+      "prompt_tokens": 925,
+      "completion_tokens": 19,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 944,
+  "total_latency_ms": 1104,
+  "agent_reply": "1,054,312。等等，你该不会是在用我验算作业吧？"
+}

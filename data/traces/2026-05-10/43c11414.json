@@ -1,0 +1,17 @@
+{
+  "trace_id": "43c11414",
+  "timestamp": "2026-05-10 09:23:40",
+  "user_input": "我？我是她前女友",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1814,
+      "prompt_tokens": 1617,
+      "completion_tokens": 56,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 1673,
+  "total_latency_ms": 1814,
+  "agent_reply": "哦。那你知道她出外勤的时候左肩旧伤还会疼吧？以为我不知道她偷藏止痛片在枕头底下。你俩的事她从不多说，我也懒得问。  但你既然找上门来，总不是来叙旧的。什么事，直说。"
+}

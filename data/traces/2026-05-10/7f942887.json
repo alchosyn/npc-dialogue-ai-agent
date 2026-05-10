@@ -1,0 +1,17 @@
+{
+  "trace_id": "7f942887",
+  "timestamp": "2026-05-10 09:39:38",
+  "user_input": "果然脑子聪明啊。真是可惜你生在这种环境",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1391,
+      "prompt_tokens": 993,
+      "completion_tokens": 31,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 1024,
+  "total_latency_ms": 1391,
+  "agent_reply": "少来这套。你该不会以为我会感激你可怜我吧？脑子好用跟生在哪儿没关系。我靠自己活到现在，不欠谁什么。"
+}

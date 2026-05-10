@@ -1,0 +1,33 @@
+{
+  "trace_id": "3501742d",
+  "timestamp": "2026-05-10 09:30:50",
+  "user_input": "你确定？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1670,
+      "prompt_tokens": 981,
+      "completion_tokens": 56,
+      "has_tool_calls": true
+    },
+    {
+      "type": "tool_call",
+      "tool": "search_knowledge",
+      "input": {
+        "query": "票根 搬走 货运 北区 时间"
+      },
+      "output": "[{\"title\": \"票根与明文的红区相遇\", \"content\": \"凌晨两点，红区街角。票根蹲在自动贩卖机前用沾血的手指填报销单，信噪在耳蜗通讯器里碎碎念着帮她屏蔽红外警报、提醒绕开无人机查岗、让她带合成面条回来别买牛肉味的。一把高分子雨伞无声地停在票根头顶——明文绕过了信噪的雷达出现在三步之内，只有协议制定者才能做到。明文说觉得有些遗憾，人类因为沟通的误差总是会偏离红线，最后还得靠这么物理",
+      "latency_ms": 58
+    },
+    {
+      "type": "llm_call",
+      "latency_ms": 1872,
+      "prompt_tokens": 1614,
+      "completion_tokens": 70,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 2721,
+  "total_latency_ms": 3600,
+  "agent_reply": "行，翻了一下记忆。票根那会儿确实走了。她跟你们红区的人还有过接触，对吧？凌晨两点，自动贩卖机前，你跟她碰过面。你当时还透过她耳朵里的通讯器跟我说我皮质醇不稳定来着。  所以你现在来问我她搬没搬走，你心里没数？"
+}

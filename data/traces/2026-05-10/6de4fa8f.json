@@ -1,0 +1,17 @@
+{
+  "trace_id": "6de4fa8f",
+  "timestamp": "2026-05-10 09:28:04",
+  "user_input": "那么我现在至少可以确认你的身体无恙了？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1081,
+      "prompt_tokens": 791,
+      "completion_tokens": 23,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 814,
+  "total_latency_ms": 1081,
+  "agent_reply": "能吃能睡能骂人，好得很。不像你们上层区的人，整天惦记着别人的脑回路。"
+}

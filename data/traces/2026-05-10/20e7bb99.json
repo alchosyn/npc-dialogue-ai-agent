@@ -1,0 +1,17 @@
+{
+  "trace_id": "20e7bb99",
+  "timestamp": "2026-05-10 09:24:01",
+  "user_input": "？你在挑衅我",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1894,
+      "prompt_tokens": 1682,
+      "completion_tokens": 51,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 1733,
+  "total_latency_ms": 1894,
+  "agent_reply": "我犯得着挑衅你？你一上来就报我老底，连我室友都查过了，拐弯抹角的。行，我换个说法——想问什么赶紧问，问完我还得去趟电子黑市换块显卡。"
+}

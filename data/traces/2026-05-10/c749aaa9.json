@@ -1,0 +1,17 @@
+{
+  "trace_id": "c749aaa9",
+  "timestamp": "2026-05-10 09:23:24",
+  "user_input": "少问没必要的问题。票根最近如何？",
+  "steps": [
+    {
+      "type": "llm_call",
+      "latency_ms": 1737,
+      "prompt_tokens": 1560,
+      "completion_tokens": 48,
+      "has_tool_calls": false
+    }
+  ],
+  "total_tokens": 1608,
+  "total_latency_ms": 1737,
+  "agent_reply": "你是她什么人？她上个月被调去东区清道夫分队了，凌晨三点出门，天亮前回来倒头就睡，连鞋都不脱。冰箱里还剩半盒她买的牛肉味合成面条。"
+}
