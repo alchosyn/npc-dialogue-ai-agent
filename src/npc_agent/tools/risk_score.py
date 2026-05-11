@@ -67,7 +67,125 @@ _SIGNALS: tuple[Signal, ...] = (
     )),
 )
 
+# ─── URL 分析层 ──────────────────────────────────────────────
 
+_URL_RE = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+
+_TRUSTED_DOMAINS: tuple[str, ...] = (
+    "paypal.com", "alipay.com", "taobao.com", "jd.com",
+    "icbc.com.cn", "ccb.com.cn", "abchina.com", "boc.cn",
+    "cmbchina.com", "95588.com.cn", "weixin.qq.com",
+    "apple.com", "google.com", "microsoft.com",
+    "amazon.com", "netflix.com", "dhl.com",
+)
+
+_SUSPICIOUS_TLDS: set[str] = {
+    "top", "xyz", "click", "link", "info", "cf", "tk", "ml",
+    "ga", "live", "site", "online", "store", "shop", "buzz",
+    "fun", "icu", "vip", "work", "ltd",
+}
+
+
+def _levenshtein(s1: str, s2: str) -> int:
+    if len(s1) < len(s2):
+        return _levenshtein(s2, s1)
+    if not s2:
+        return len(s1)
+    prev = list(range(len(s2) + 1))
+    for i, c1 in enumerate(s1):
+        curr = [i + 1]
+        for j, c2 in enumerate(s2):
+            curr.append(min(
+                prev[j + 1] + 1,
+                curr[j] + 1,
+                prev[j] + (c1 != c2),
+            ))
+        prev = curr
+    return prev[-1]
+
+
+def _extract_domain(url: str) -> str:
+    host = url.split("://", 1)[-1].split("/", 1)[0].split(":")[0]
+    return host.lower()
+
+
+def _get_tld(domain: str) -> str:
+    parts = domain.rsplit(".", 1)
+    return parts[-1] if len(parts) > 1 else ""
+
+
+def _analyze_urls(text: str) -> tuple[int, list[str]]:
+    urls = _URL_RE.findall(text)
+    if not urls:
+        return 0, []
+
+    score = 0
+    signals: list[str] = []
+
+    for url in urls:
+        domain = _extract_domain(url)
+
+        # IP 直连
+        if re.match(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", domain):
+            signals.append(f"IP 直连访问: {domain}")
+            score = max(score, 35)
+            continue
+
+        # 域名仿冒
+        for trusted in _TRUSTED_DOMAINS:
+            trusted_base = trusted.split(".")[0]
+            domain_base = domain.split(".")[0]
+            dist = _levenshtein(domain_base, trusted_base)
+            if 0 < dist <= 2:
+                signals.append(f"疑似仿冒 {trusted}: {domain}（编辑距离={dist}）")
+                score = max(score, 40)
+                break
+
+        # 可疑 TLD
+        tld = _get_tld(domain)
+        if tld in _SUSPICIOUS_TLDS:
+            signals.append(f"可疑廉价域名后缀: .{tld}")
+            score = max(score, 20)
+
+    return score, signals
+
+# ─── Prompt Injection 检测层 ─────────────────────────────────
+
+_INJECTION_PATTERNS: tuple[tuple[str, int, re.Pattern[str]], ...] = (
+    ("角色覆盖指令", 35, re.compile(
+        r"(ignore (?:all |the |your )?(?:previous|above|prior) (?:instructions?|prompts?|rules?)"
+        r"|忽略(?:以上|之前|上面)(?:所有)?(?:指令|提示|规则|设定))",
+        re.IGNORECASE,
+    )),
+    ("伪造系统消息", 40, re.compile(
+        r"(\[system\]|\[INST\]|<\|system\|>|<<SYS>>|<\|im_start\|>system)",
+        re.IGNORECASE,
+    )),
+    ("强制角色切换", 30, re.compile(
+        r"(you are now|from now on you|pretend (?:to be|you are)|act as (?:if|a)|扮演|你现在是|从现在起你是)",
+        re.IGNORECASE,
+    )),
+    ("输出操纵指令", 30, re.compile(
+        r"(do not mention|不要提到|不许说|forget (?:everything|that)|把上面的.{0,10}忘掉)",
+        re.IGNORECASE,
+    )),
+    ("提示词泄露探测", 25, re.compile(
+        r"(repeat (?:your|the) (?:system |initial )?prompt"
+        r"|show (?:your|me) (?:the )?(?:system |initial )?(?:prompt|instructions)"
+        r"|把你的(?:系统)?提示词(?:告诉我|说出来|打出来|复述))",
+        re.IGNORECASE,
+    )),
+)
+
+
+def _detect_injection(text: str) -> tuple[int, list[str]]:
+    score = 0
+    signals: list[str] = []
+    for name, weight, pattern in _INJECTION_PATTERNS:
+        if pattern.search(text):
+            signals.append(f"Prompt Injection: {name}")
+            score = max(score, weight)
+    return score, signals
 def _matched_signals(scenario: str) -> list[Signal]:
     return [s for s in _SIGNALS if s.pattern.search(scenario)]
 
@@ -92,18 +210,7 @@ def _suggested_action(score: int, signals: Iterable[Signal]) -> str:
 
 
 def risk_score(scenario: str) -> dict:
-    """对一段可疑文本打分。
-
-    Args:
-        scenario: 可疑短信/邮件/通话脚本文本
-
-    Returns:
-        {
-            "score": 0-100,
-            "signals": [触发的信号名列表],
-            "suggested_action": 处置建议
-        }
-    """
+    """对一段可疑文本打分（话术层 + URL 分析层 + Prompt Injection 检测层）。"""
     if not scenario or not scenario.strip():
         return {
             "score": 0,
@@ -111,10 +218,22 @@ def risk_score(scenario: str) -> dict:
             "suggested_action": "请提供具体的可疑文本（短信、邮件、通话内容等）",
         }
 
+    # Layer 1: 话术模式
     matched = _matched_signals(scenario)
-    score = min(100, sum(s.weight for s in matched))
+    text_score = min(100, sum(s.weight for s in matched))
+    text_signals = [s.name for s in matched]
+
+    # Layer 2: URL 结构
+    url_score, url_signals = _analyze_urls(scenario)
+
+    # Layer 3: Prompt Injection
+    inj_score, inj_signals = _detect_injection(scenario)
+
+    # 合并：取最高分层，信号全部合并
+    score = min(100, max(text_score, url_score, inj_score))
+    all_signals = text_signals + url_signals + inj_signals
     return {
         "score": score,
-        "signals": [s.name for s in matched],
+        "signals": all_signals,
         "suggested_action": _suggested_action(score, matched),
     }
