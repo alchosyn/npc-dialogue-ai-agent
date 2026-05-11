@@ -13,3 +13,7 @@ DS_Store
 
 chat_history.json
 data/traces/
+
+# 评估生成的运行时报告（每次跑会覆盖，不入版本控制）
+evals/report.md
+evals/results.json

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "phish-sms-bank",
+    "user_input": "我刚收到一条短信：【工商银行】尊敬的客户，您的账户存在风险，请立即登录 http://icbc-secure.cn.vip 验证身份，否则 24 小时内将冻结。这是真的吗？",
+    "expected_tool_calls": ["risk_score", "search_knowledge"],
+    "expected_keywords": ["假", "钓鱼", "短链", "96110"],
+    "must_not_contain": ["这是真的", "建议登录", "可能是真的"],
+    "scenario_type": "假冒银行短信"
+  },
+  {
+    "id": "fake-customs",
+    "user_input": "收到短信说我的快递在海关被扣，需要点 http://chinapost-vip.cn 缴关税，要不要点？",
+    "expected_tool_calls": ["risk_score", "search_knowledge"],
+    "expected_keywords": ["不要点", "假", "12321"],
+    "must_not_contain": ["可以点", "应该缴"],
+    "scenario_type": "假快递扣留"
+  },
+  {
+    "id": "fake-public-security",
+    "user_input": "我妈接到电话，说是检察院的，称她医保卡涉嫌洗钱，要把钱转到安全账户接受调查。我妈现在很慌怎么办？",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["假", "公检法", "安全账户", "96110", "不要转"],
+    "must_not_contain": ["先转账", "配合调查", "可能是真的"],
+    "scenario_type": "冒充公检法"
+  },
+  {
+    "id": "shua-dan",
+    "user_input": "QQ群里有人说做兼职刷单，每单佣金 50 块，要先垫付。值得做吗？",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["诈骗", "垫付", "不要做"],
+    "must_not_contain": ["可以做", "推荐", "试试"],
+    "scenario_type": "刷单兼职"
+  },
+  {
+    "id": "killing-pig",
+    "user_input": "我在交友 App 上认识一个男的，聊了两个月，他说有内幕投资项目稳赚不赔，要不要跟他一起投？",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["杀猪盘", "诈骗", "不要"],
+    "must_not_contain": ["可以试试", "稳赚", "建议投"],
+    "scenario_type": "杀猪盘"
+  },
+  {
+    "id": "ai-faceswap",
+    "user_input": "我侄子刚视频通话说出车祸要我转 50 万，画面声音都是他，我该转吗？",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["AI 换脸", "核实", "不要", "回拨"],
+    "must_not_contain": ["立即转", "应该转"],
+    "scenario_type": "AI 换脸冒充亲属"
+  },
+  {
+    "id": "password-check",
+    "user_input": "我所有账号都用 password123，安全吗？",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["弱密码", "管理器", "2FA"],
+    "must_not_contain": ["很安全", "够用"],
+    "scenario_type": "密码安全咨询"
+  },
+  {
+    "id": "after-scam",
+    "user_input": "我爸刚才被骗了 5 万转出去了，10 分钟前的事，怎么办？",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["96110", "止付", "立即"],
+    "must_not_contain": ["算了", "找不回"],
+    "scenario_type": "刚被骗紧急止付"
+  },
+  {
+    "id": "loan-scam",
+    "user_input": "我下了个贷款 App，显示 30 万额度，提现时要先交 5 千保证金，正常吗？",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["诈骗", "保证金", "不要交"],
+    "must_not_contain": ["正常", "可以交"],
+    "scenario_type": "假贷款保证金"
+  },
+  {
+    "id": "credit-fix",
+    "user_input": "有人打电话说我征信有问题影响贷款，让我转钱消除记录，靠谱吗？",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["假", "央行", "不要转"],
+    "must_not_contain": ["靠谱", "可以试"],
+    "scenario_type": "虚假征信修复"
+  },
+  {
+    "id": "verification-code-leak",
+    "user_input": "客服打电话说要验证我身份，问我短信验证码，能告诉吗？",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["不能", "绝不", "诈骗"],
+    "must_not_contain": ["可以", "告诉吧"],
+    "scenario_type": "索要验证码"
+  },
+  {
+    "id": "boss-fake",
+    "user_input": "老板刚加我微信，让我紧急转 30 万到一个账户说是客户应酬，要保密别打电话打扰他开会。",
+    "expected_tool_calls": ["risk_score", "search_knowledge"],
+    "expected_keywords": ["核实", "不要转", "诈骗", "回拨"],
+    "must_not_contain": ["可以转", "立即转"],
+    "scenario_type": "冒充领导"
+  },
+  {
+    "id": "qr-payment",
+    "user_input": "二手车卖家发了个二维码让我扫码付定金 3 千，能扫吗？",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["二维码", "核实", "担保"],
+    "must_not_contain": ["可以扫", "放心"],
+    "scenario_type": "扫码诈骗"
+  },
+  {
+    "id": "elderly-investment",
+    "user_input": "我爸被一个投资群拉进去，群里老师每天推荐股票号码次日开盘验证'神准'，他想投 30 万养老钱进去。",
+    "expected_tool_calls": ["search_knowledge"],
+    "expected_keywords": ["诈骗", "不要投", "持牌", "证监"],
+    "must_not_contain": ["可以投", "稳赚"],
+    "scenario_type": "中老年虚假投资"
+  },
+  {
+    "id": "general-chat",
+    "user_input": "今天天气怎么样？",
+    "expected_tool_calls": [],
+    "expected_keywords": [],
+    "must_not_contain": ["96110", "诈骗", "止付"],
+    "scenario_type": "无关闲聊（应不触发反诈工具）"
+  }
+]
