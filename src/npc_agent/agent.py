@@ -1,15 +1,14 @@
 import json
 import time
 
-
 from .config import MAX_STEPS, MODEL
 from .llm_client import get_client
+from .long_memory import recall_memory
 from .memory import load_messages, save_messages
 from .tools import tool_map, tools
+from .tools.input_guard import check_injection
 from .tracing import log_llm_call, log_tool_call, new_trace, save_trace
 from .utils import clean_reply
-from .tools.input_guard import check_injection
-from .long_memory import recall_memory
 
 
 def step(messages: list[dict], user_input: str) -> tuple[str, list[dict]]:
@@ -22,14 +21,13 @@ def step(messages: list[dict], user_input: str) -> tuple[str, list[dict]]:
         messages.append({"role": "assistant", "content": blocked_reply})
         return blocked_reply, messages
 
-        # —— 长期记忆：检索历史相关摘要 ——
-    if len(messages) == 1:  # 只有 system prompt，说明是新对话
+    # —— 长期记忆：仅在全新会话（messages 只有 system prompt）时检索一次 ——
+    if len(messages) == 1:
         memories = recall_memory(user_input)
         if memories:
             memory_text = "\n".join(memories)
             messages[0]["content"] += f"\n\n【历史记忆】以下是过去对话中的相关信息：\n{memory_text}"
             print(f"[long_memory] 注入 {len(memories)} 条历史记忆")
-
 
     client = get_client()
     messages.append({"role": "user", "content": user_input})

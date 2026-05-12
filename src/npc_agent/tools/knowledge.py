@@ -77,12 +77,8 @@ def search_knowledge(query: str, top_k: int = TOP_K) -> dict:
 
     for q in queries:
         query_embedding = _model.encode(q)
-        query_embedding = query_embedding / np.linalg.norm(query_embedding)  # ← 加这行
+        query_embedding = query_embedding / np.linalg.norm(query_embedding)
         vec_scores = np.dot(_doc_embeddings, query_embedding)
-        round_best = float(vec_scores.max())
-        if round_best > best_vec_score:
-            best_vec_score = round_best
-        print(f"[debug] query='{q}' best_vec_score={float(vec_scores.max()):.4f}")
 
         # 记录这轮最高原始向量分
         round_best = float(vec_scores.max())
@@ -110,21 +106,6 @@ def search_knowledge(query: str, top_k: int = TOP_K) -> dict:
 
     all_results.sort(key=lambda x: x["score"], reverse=True)
     results = all_results[:top_k]
-
-    # —— 质量提示：告诉 LLM 这批结果够不够用 ——
-    CONFIDENCE_THRESHOLD = 0.50
-    if best_vec_score < CONFIDENCE_THRESHOLD:
-        quality_hint = (
-            f"知识库最高语义相似度仅 {best_vec_score:.2f}，低于阈值 {CONFIDENCE_THRESHOLD}。"
-            "结果可能不相关，建议调用 web_search 获取更准确的信息。"
-        )
-    else:
-        quality_hint = f"知识库最高语义相似度 {best_vec_score:.2f}，结果可信度较高。"
-
-    return {
-        "results": results,
-        "quality_hint": quality_hint,
-    }
 
     # —— 质量提示：告诉 LLM 这批结果够不够用 ——
     CONFIDENCE_THRESHOLD = 0.50

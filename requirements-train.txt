@@ -1,0 +1,19 @@
+# Training dependencies for SFT / LoRA fine-tuning of Qwen2.5-1.5B
+# Install in a Kaggle notebook or Colab Pro GPU runtime.
+
+# Base training stack
+torch>=2.1.0
+transformers>=4.40.0
+peft>=0.10.0
+trl>=0.8.0
+datasets>=2.18.0
+accelerate>=0.28.0
+
+# Optional acceleration on consumer GPUs (T4/P100/A100):
+# unsloth has its own pip install command per CUDA version; see
+# https://github.com/unslothai/unsloth#installation-instructions
+# Example for Kaggle T4:
+#   pip install "unsloth[kaggle-new] @ git+https://github.com/unslothai/unsloth.git"
+
+# Eval helpers
+scipy>=1.10.0
