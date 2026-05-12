@@ -104,9 +104,10 @@ def load_model_with_lora_native(args):
 
     print(f"[load] transformers + peft: {model_name}")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.bfloat16,
+        torch_dtype=dtype,
         device_map="auto",
     )
     model.gradient_checkpointing_enable()
@@ -174,6 +175,9 @@ def load_dataset_for_qwen(args, tokenizer):
 def build_trainer(args, model, tokenizer, dataset):
     from trl import SFTConfig, SFTTrainer
 
+    import torch
+    _bf16_ok = torch.cuda.is_bf16_supported() if torch.cuda.is_available() else False
+
     config = SFTConfig(
         output_dir=str(args.output_dir),
         num_train_epochs=args.epochs,
@@ -189,7 +193,8 @@ def build_trainer(args, model, tokenizer, dataset):
         eval_steps=args.eval_steps,
         save_strategy="epoch",
         save_total_limit=2,
-        bf16=True,
+        bf16=_bf16_ok,
+        fp16=not _bf16_ok,
         optim="adamw_8bit",
         seed=args.seed,
         max_seq_length=args.max_seq_len,
