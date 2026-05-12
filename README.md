@@ -96,17 +96,53 @@ src/npc_agent/
 
 evals/
   cases.json         测试场景
-  run_eval.py        评估入口
+  run_eval.py        规则匹配 + LLM-as-Judge 评估
+  run_compare.py     4 路对比（DeepSeek base/Agent vs Qwen base/LoRA）
   judge.py           LLM-as-Judge
+
+data/
+  sft_seeds.json     50 条手工种子（覆盖 15 类诈骗手法 + 处置 + 防护）
+
+scripts/
+  expand_sft_data.py LLM 把种子扩成 ~250 条变体
+  format_for_qwen.py 转 Qwen messages 格式 + 90/10 切分
+
+notebooks/
+  train_qwen_lora_kaggle.ipynb   Kaggle 上跑 Qwen2.5-1.5B + Unsloth + LoRA
+  eval_compare_kaggle.ipynb      Kaggle 上跑 4 路对比
+```
+
+## SFT / LoRA 工作流
+
+完整流程：
+
+```bash
+# 1. 本地：把 50 条种子扩成 ~250 条 SFT 数据
+python scripts/expand_sft_data.py
+python scripts/format_for_qwen.py
+
+# 2. 把 data/sft_train.jsonl + data/sft_val.jsonl 上传到 Kaggle
+#    创建 Kaggle Dataset，加入到训练 notebook 输入
+
+# 3. Kaggle：打开 notebooks/train_qwen_lora_kaggle.ipynb，
+#    Settings → GPU T4 x2 / P100，跑全部 cell
+#    输出 LoRA adapter (~25MB) 到 /kaggle/working/qwen-1.5b-xinzao-lora/
+
+# 4. Kaggle：把训练输出作为新 Dataset，加入到评估 notebook 输入
+#    打开 notebooks/eval_compare_kaggle.ipynb 跑 4 路对比
+
+# 5. 本地：跑 DeepSeek 两路（不需要 GPU）
+python evals/run_compare.py --strategies deepseek-base deepseek-agent
 ```
 
 ## Roadmap
 
-- [ ] Agentic RAG（Query Rewrite + BM25 混合检索 + 自适应降级）
-- [ ] 长期向量记忆
-- [ ] SFT 数据构建 + Qwen2.5-1.5B LoRA 训练
+- [x] Agentic RAG（Query Rewrite + BM25 混合检索 + quality_hint 自适应降级）
+- [x] 长期向量记忆（跨会话）
+- [x] SFT 数据构建 + Qwen2.5-1.5B LoRA 训练
 - [ ] GRPO 后训练
 - [ ] OCR 支持（直接传截图）
+- [ ] 部署 hosted demo（Hugging Face Spaces）
 
 ## 已知局限
 

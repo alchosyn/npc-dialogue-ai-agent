@@ -17,3 +17,15 @@ data/traces/
 # 评估生成的运行时报告（每次跑会覆盖，不入版本控制）
 evals/report.md
 evals/results.json
+evals/compare_report.md
+evals/compare_results.json
+
+# SFT 生成数据（由种子 + 脚本可重现）
+data/sft_expanded.jsonl
+data/sft_train.jsonl
+data/sft_val.jsonl
+
+# 训练产物（adapter 太大不入仓库；推 HF Hub 或单独下载）
+outputs/
+*.safetensors
+*.bin
