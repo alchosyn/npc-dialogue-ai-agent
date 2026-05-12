@@ -36,6 +36,7 @@ def _ensure_loaded() -> None:
 
     _doc_texts = [doc["title"] + "：" + doc["content"] for doc in _knowledge_base]
     _doc_embeddings = _model.encode(_doc_texts)
+    _doc_embeddings = _doc_embeddings / np.linalg.norm(_doc_embeddings, axis=1, keepdims=True)  # ← 加这行
 
     # BM25 索引
     tokenized = [_tokenize(t) for t in _doc_texts]
@@ -64,23 +65,32 @@ def _rewrite_queries(user_input: str) -> list[str]:
     queries = [q.strip() for q in raw.split("\n") if q.strip()]
     # 保底：如果 LLM 返回空，至少用原始输入
     return queries if queries else [user_input]
-def search_knowledge(query: str, top_k: int = TOP_K) -> list[dict]:
+def search_knowledge(query: str, top_k: int = TOP_K) -> dict:
+    """搜索知识库，返回结果 + 质量提示。"""
     _ensure_loaded()
 
     queries = _rewrite_queries(query)
 
     seen_titles: set[str] = set()
     all_results: list[dict] = []
+    best_vec_score: float = 0.0          # ← 新增：追踪最高原始向量分
 
     for q in queries:
-        # 向量检索
         query_embedding = _model.encode(q)
+        query_embedding = query_embedding / np.linalg.norm(query_embedding)  # ← 加这行
         vec_scores = np.dot(_doc_embeddings, query_embedding)
+        round_best = float(vec_scores.max())
+        if round_best > best_vec_score:
+            best_vec_score = round_best
+        print(f"[debug] query='{q}' best_vec_score={float(vec_scores.max()):.4f}")
 
-        # BM25 检索
+        # 记录这轮最高原始向量分
+        round_best = float(vec_scores.max())
+        if round_best > best_vec_score:
+            best_vec_score = round_best
+
         bm25_scores = _bm25.get_scores(_tokenize(q))
 
-        # 归一化到 0-1 再合并（各占一半权重）
         vec_norm = vec_scores / (vec_scores.max() + 1e-9)
         bm25_norm = bm25_scores / (bm25_scores.max() + 1e-9)
         combined = 0.5 * vec_norm + 0.5 * bm25_norm
@@ -99,4 +109,34 @@ def search_knowledge(query: str, top_k: int = TOP_K) -> list[dict]:
             })
 
     all_results.sort(key=lambda x: x["score"], reverse=True)
-    return all_results[:top_k]
+    results = all_results[:top_k]
+
+    # —— 质量提示：告诉 LLM 这批结果够不够用 ——
+    CONFIDENCE_THRESHOLD = 0.50
+    if best_vec_score < CONFIDENCE_THRESHOLD:
+        quality_hint = (
+            f"知识库最高语义相似度仅 {best_vec_score:.2f}，低于阈值 {CONFIDENCE_THRESHOLD}。"
+            "结果可能不相关，建议调用 web_search 获取更准确的信息。"
+        )
+    else:
+        quality_hint = f"知识库最高语义相似度 {best_vec_score:.2f}，结果可信度较高。"
+
+    return {
+        "results": results,
+        "quality_hint": quality_hint,
+    }
+
+    # —— 质量提示：告诉 LLM 这批结果够不够用 ——
+    CONFIDENCE_THRESHOLD = 0.50
+    if best_vec_score < CONFIDENCE_THRESHOLD:
+        quality_hint = (
+            f"知识库最高语义相似度仅 {best_vec_score:.2f}，低于阈值 {CONFIDENCE_THRESHOLD}。"
+            "结果可能不相关，建议调用 web_search 获取更准确的信息。"
+        )
+    else:
+        quality_hint = f"知识库最高语义相似度 {best_vec_score:.2f}，结果可信度较高。"
+
+    return {
+        "results": results,
+        "quality_hint": quality_hint,
+    }

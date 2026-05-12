@@ -5,33 +5,17 @@
   },
   {
     "role": "user",
-    "content": "信噪"
+    "content": "今天天气怎么样？"
   },
   {
-    "role": "assistant",
-    "content": "哟，谁啊。又遇到什么妖魔鬼怪了？说。"
-  },
-  {
-    "role": "user",
-    "content": "有一张我名下的信用卡涉嫌洗钱"
-  },
-  {
-    "role": "assistant",
-    "content": "哈，经典开场白。你先别慌，也别转钱。  这玩意儿十有八九是冒充公检法诈骗的变种。我先帮你查查近期的套路。  让我看一眼这短信或者电话的原文，你手边有吗？"
-  },
-  {
-    "role": "user",
-    "content": "没有，它就和我说了这个"
-  },
-  {
-    "content": "嗯，就一句话，信号不够，我先搜一下。",
+    "content": "我又不是天气预报AI。不过既然你问了，帮你查一下。\n\n话说你不会是那种连天气都要靠别人告诉你才敢出门的人吧。",
     "role": "assistant",
     "tool_calls": [
       {
-        "id": "call_00_uB7fxznRR43FkRZu0qcg9575",
+        "id": "call_00_wk4bYqxvm3NKpY9fmYhs3477",
         "function": {
-          "arguments": "{\"query\": \"名下信用卡涉嫌洗钱 诈骗手法 2024 2025\"}",
-          "name": "search_knowledge"
+          "arguments": "{\"query\": \"今天天气预报 2025年\"}",
+          "name": "web_search"
         },
         "type": "function",
         "index": 0
@@ -40,19 +24,11 @@
   },
   {
     "role": "tool",
-    "tool_call_id": "call_00_uB7fxznRR43FkRZu0qcg9575",
-    "content": "[{\"title\": \"刑法 第二百六十六条 诈骗罪量刑梯度\", \"content\": \"诈骗公私财物，数额较大的（一般 3000 元以上），处三年以下有期徒刑、拘役或者管制，并处或者单处罚金。数额巨大（5 万元以上）或者有其他严重情节的，处三年以上十年以下有期徒刑。数额特别巨大（50 万元以上）或者有其他特别严重情节的，处十年以上有期徒刑或者无期徒刑。具体标准各省可上下浮动。\", \"score\": 6.73251485824585}, {\"title\": \"虚假征信修复骗 2 万（典型案例）\", \"content\": \"代表性场景：受害人接到自称'央行征信中心'电话，称其名下有不良记录会影响贷款，需配合'消除'，转账 2 万到'清账账户'。识别要点：央行征信中心从不主动外呼。个人征信查询走 ipcrs.pbccrc.org.cn 平台或线下网点。所有'征信修复'广告均为诈骗。\", \"score\": 6.709488868713379}, {\"title\": \"虚假征信修复诈骗\", \"content\": \"套路：自称'银行''央行征信中心'工作人员，称受害人征信有不良记录会影响贷款/就业，需配合'消除记录'，引导转账到所谓的'清账账户'。识别要点：央行征信中心从不主动外呼，征信查询走 ipcrs.pbccrc.org.cn 个人信用信息服务平台或线下网点，所有'征信修复''洗白'广告均为诈骗。\", \"score\": 6.704842567443848}]"
+    "tool_call_id": "call_00_wk4bYqxvm3NKpY9fmYhs3477",
+    "content": "标题：Spring Weather Forecast 2025 - Farmers' Almanac\n内容：## Spring Weather Forecast 2025 – Canada. Spring weather forecast 2025 from Farmers' Almanac calls for a thunder and zing spring. Spring weather forecast 2025 from Farmers' Almanac calls for a thunder and zing spring. The question on everyone’s mind is, “when will weather warm up?” Here’s the *Farmers’ Almanac* spring forecast, including Easter weather and Memorial Day weather predictions. Get ready for a “Thunder and Zing Spring!” *Farmers’ Almanac* long range weather forecast says **spring weather will take its time arriving**, allowing winter conditions to linger, especially across the Midwest, Great Lakes, New England, and Northeast regions. Spring weather forecast 2025 map for the United States. Spring weather forecast 2025 map for the United States. (Jump to Canada’s Spring 2025 Weather Forecast.) The exceptions will be in The Southeast and South Central states, where temperatures will be a bit warmer, but even areas in the Southwest will see a slow warm-up. # Spring Weather Forecast 2025.\n\n标题：深圳 - 中国气象局-天气预报-城市预报\n内容：7天天气预报（2026/05/08 20:00发布）. | 时间 | 08:00 | 11:00 | 14:00 | 17:00 | 20:00 | 23:00 | 02:00 | 05:00 |. | 气温 | 23℃ | 24.3℃ | 25.1℃ | 24.6℃ | 23.1℃ | 23.1℃ | 23.3℃ | 22.6℃ |. | 降水 | 无降水 | 无降水 | 无降水 | 无降水 | 无降水 | 无降水 | 无降水 | 无降水 |. | 风速 | 3.3m/s | 3.3m/s | 2.5m/s | 2.5m/s | 2.9m/s | 3.3m/s | 3m/s | 3m/s |. | 风向 | 东北风 | 东北风 | 东南风 | 东南风 | 东南风 | 东南风 | 东南风 | 东北风 |. | 风向 | 西南风 | 西南风 | 西南风 | 西南风 | 东南风 | 西南风 | 西南风 | 西南风 |. | 降水 | 无降水 | 无降水 | 无降水 | 无降水 | 无降水 | 4.5mm | 无降水 | 1.8mm |. | 降水 | 0.1mm | 6mm | 0.2mm | 6.6mm | 7.7mm | 3.7mm | 1.1mm | 3.9mm |.\n\n标题：天气预报\n内容：# 最新全国气象公告 华北 * 北京 * 天津 * 石家庄 * 太原 * 呼和浩特 * 保定 * 大同 * 包头 * 承德市 * 晋中 * 通辽 * 秦皇岛 东北 * 哈尔滨 * 长春 * 沈阳 * 齐齐哈尔 * 吉林 * 大连 * 牡丹江 * 延吉 * 鞍山 * 绥化 * 白城 * 葫芦岛 华南 * 广州 * 南宁 * 海口 * 香港 * 澳门 * 深圳 * 桂林 * 三亚 * 珠海 * 中山 * 百色 * 万宁 西北 * 西安 * 兰州 * 西宁 * 银川 * 乌鲁木齐 * 延安 * 宝鸡 * 天水 * 吴忠 * 吐鲁番 * 酒泉 * 固原 西南 * 重庆 * 成都 * 贵阳 * 昆明 * 拉萨 * 绵阳 * 遵义 * 大理 * 乐山 * 六盘水 * 丽江 华东 * 上海 * 福州 * 合肥 * 南昌 * 济南 * 嘉兴 * 南京 * 宁波 * 苏州 * 青岛 * 厦门 * 台北市 华中 * 郑州 * 武汉 * 长沙 * 安阳 * 襄阳 * 湘潭 * 株洲 * 许昌 * 常德 * 张家界 * 孝感 * 荆门."
   },
   {
     "role": "assistant",
-    "content": "没看到完全吻合的，但\"名下信用卡涉嫌洗钱\"这个话术是冒充公检法的经典起手式。正规银行或警方不会因为这事直接电话找你让你配合调查，更不会让你转账到\"安全账户\"——这词就是诈骗界的身份证。  你之前接过什么可疑电话或短信不？有没有让你下载什么App、点链接、或者说什么\"要转接公安局\"？"
-  },
-  {
-    "role": "user",
-    "content": "没有……就给我说了这个"
-  },
-  {
-    "role": "assistant",
-    "content": "那你现在收到的东西连金额、账户、联系人全没提，反倒让我更确定是鱼饵阶段——他们一般先放一句制造焦虑，等你慌了追问细节，才会一步步下套。  记住一句话：任何说你名下卡涉嫌犯罪的，先挂电话，自己打银行客服或者110核实。别让对方帮你转接。  你那个手机号或者社交账号最近有没有陌生好友加你？"
+    "content": "不知道你人在哪，我拿到的信息只能拼个大概——如果最近你在国内大部分地方，今天气温20多度，没啥大暴雨。深圳那边早上23℃左右，东北风，偶尔飘点小雨。  但说真的，这天气信息满网飞都能查到，你不如直接开天气app。还是说...你来我这，不是为了问天气？"
   }
 ]

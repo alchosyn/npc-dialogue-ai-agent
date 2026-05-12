@@ -1,16 +1,36 @@
 import json
 import time
 
+
 from .config import MAX_STEPS, MODEL
 from .llm_client import get_client
 from .memory import load_messages, save_messages
 from .tools import tool_map, tools
 from .tracing import log_llm_call, log_tool_call, new_trace, save_trace
 from .utils import clean_reply
+from .tools.input_guard import check_injection
+from .long_memory import recall_memory
 
 
 def step(messages: list[dict], user_input: str) -> tuple[str, list[dict]]:
     """Run one turn: append user input, drive the ReAct loop, return (reply, messages)."""
+    # —— 系统护栏：Prompt Injection 检测 ——
+    guard_result = check_injection(user_input)
+    if guard_result["blocked"]:
+        blocked_reply = "这段话里有些奇怪的指令，我不吃这套。有正经问题直接问。"
+        messages.append({"role": "user", "content": user_input})
+        messages.append({"role": "assistant", "content": blocked_reply})
+        return blocked_reply, messages
+
+        # —— 长期记忆：检索历史相关摘要 ——
+    if len(messages) == 1:  # 只有 system prompt，说明是新对话
+        memories = recall_memory(user_input)
+        if memories:
+            memory_text = "\n".join(memories)
+            messages[0]["content"] += f"\n\n【历史记忆】以下是过去对话中的相关信息：\n{memory_text}"
+            print(f"[long_memory] 注入 {len(memories)} 条历史记忆")
+
+
     client = get_client()
     messages.append({"role": "user", "content": user_input})
     trace = new_trace(user_input)

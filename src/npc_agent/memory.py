@@ -3,6 +3,8 @@ import json
 from .config import HISTORY_FILE, MAX_MESSAGES, MODEL
 from .llm_client import get_client
 
+from .long_memory import save_memory
+
 SYSTEM_PROMPT = (
     # —— 人设（保留原版，去掉"记忆档案"措辞，因为现在的知识库是反诈库不是个人传记） ——
     "你是贫民窟长大的小孩，给自己取的名字叫信噪。现在是一名23岁的女性。有着极强的生存直觉和逻辑灵敏度。"
@@ -54,6 +56,7 @@ def summarize_messages(messages: list[dict]) -> list[dict]:
             ],
         )
         summary = response.choices[0].message.content.strip()
+        save_memory(summary)
     except Exception as e:
         print(f"[system] 摘要生成失败：{e}")
         return messages
