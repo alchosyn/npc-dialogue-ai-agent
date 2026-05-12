@@ -106,34 +106,51 @@ data/
 scripts/
   expand_sft_data.py LLM 把种子扩成 ~250 条变体
   format_for_qwen.py 转 Qwen messages 格式 + 90/10 切分
+  train_lora.py      Qwen2.5-1.5B + LoRA SFT 训练主脚本（CLI 参数化）
 
 notebooks/
-  train_qwen_lora_kaggle.ipynb   Kaggle 上跑 Qwen2.5-1.5B + Unsloth + LoRA
-  eval_compare_kaggle.ipynb      Kaggle 上跑 4 路对比
+  train_qwen_lora_kaggle.ipynb   Kaggle 瘦壳，5 个 cell 调用 train_lora.py
+  eval_compare_kaggle.ipynb      Kaggle 瘦壳，5 个 cell 调用 run_compare.py
 ```
 
 ## SFT / LoRA 工作流
 
-完整流程：
+所有训练 / 评估逻辑都在 `.py` 里。两种跑法二选一：
 
 ```bash
-# 1. 本地：把 50 条种子扩成 ~250 条 SFT 数据
-python scripts/expand_sft_data.py
-python scripts/format_for_qwen.py
+# ── 第 1 步：本地生成训练数据（共通） ──
+python scripts/expand_sft_data.py    # 50 条种子 → ~250 条变体
+python scripts/format_for_qwen.py    # 转 Qwen messages 格式 + 90/10 切分
 
-# 2. 把 data/sft_train.jsonl + data/sft_val.jsonl 上传到 Kaggle
-#    创建 Kaggle Dataset，加入到训练 notebook 输入
 
-# 3. Kaggle：打开 notebooks/train_qwen_lora_kaggle.ipynb，
-#    Settings → GPU T4 x2 / P100，跑全部 cell
-#    输出 LoRA adapter (~25MB) 到 /kaggle/working/qwen-1.5b-xinzao-lora/
+# ── 第 2 步：训练，二选一 ──
 
-# 4. Kaggle：把训练输出作为新 Dataset，加入到评估 notebook 输入
-#    打开 notebooks/eval_compare_kaggle.ipynb 跑 4 路对比
+# 选项 A: 本地或服务器有 GPU
+python scripts/train_lora.py \
+    --train-jsonl data/sft_train.jsonl \
+    --val-jsonl   data/sft_val.jsonl \
+    --output-dir  outputs/qwen-1.5b-xinzao-lora \
+    --smoke-test
 
-# 5. 本地：跑 DeepSeek 两路（不需要 GPU）
+# 选项 B: Kaggle 上跑（T4 x2 / P100 都行）
+# - 把 sft_train.jsonl + sft_val.jsonl 打包成 Kaggle Dataset
+# - 把仓库代码打包成另一个 Kaggle Dataset（或让 notebook git clone）
+# - 打开 notebooks/train_qwen_lora_kaggle.ipynb，run all
+# 也可以把 scripts/train_lora.py 直接上传作 Kaggle Script Kernel
+
+
+# ── 第 3 步：4 路对比评估 ──
+
+# 本地（只跑 DeepSeek 两路，没 GPU 也行）
 python evals/run_compare.py --strategies deepseek-base deepseek-agent
+
+# Kaggle 跑全四路：notebooks/eval_compare_kaggle.ipynb
+# 或 CLI：
+python evals/run_compare.py --strategies all \
+    --qwen-lora-path /path/to/qwen-1.5b-xinzao-lora
 ```
+
+`scripts/train_lora.py` 的超参全部 CLI 化（rank / alpha / epochs / lr / batch / seq-len / seed），默认值已调好。Unsloth 自动启用，import 失败 fallback 到原生 transformers + peft + trl。
 
 ## Roadmap
 
