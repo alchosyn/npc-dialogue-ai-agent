@@ -133,7 +133,7 @@ def load_model_with_lora(args):
     if use_unsloth:
         try:
             model, tokenizer = load_model_with_lora_unsloth(args)
-        except ImportError as e:
+        except (ImportError, RuntimeError) as e:
             print(f"[load] Unsloth unavailable ({e}), falling back to native.")
             model, tokenizer = load_model_with_lora_native(args)
     else:
