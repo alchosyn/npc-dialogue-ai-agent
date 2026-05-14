@@ -56,12 +56,57 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--output-dir", required=True, type=Path)
     p.add_argument("--logging-steps", type=int, default=2)
     p.add_argument("--eval-steps", type=int, default=10)
+    # 精度 / 优化器
+    p.add_argument("--precision", choices=["auto", "bf16", "fp16", "fp32"], default="auto",
+                   help="精度模式。auto=按 GPU 能力自动选（Ampere+ 用 bf16，T4/P100 用 fp16）")
+    p.add_argument("--optim", default="auto",
+                   help="优化器。auto=有 bitsandbytes 用 adamw_8bit，没有用 adamw_torch")
     # 其他
     p.add_argument("--no-unsloth", action="store_true",
                    help="不用 Unsloth 加速，强制走原生 transformers + peft + trl")
     p.add_argument("--smoke-test", action="store_true",
                    help="训完跑 3 个推理样本看看效果")
     return p.parse_args()
+
+
+# ─── 环境探测工具 ─────────────────────────────────────────
+
+
+def _resolve_precision(precision_arg: str) -> tuple[bool, bool]:
+    """根据 GPU 能力决定 bf16 / fp16 标志。返回 (use_bf16, use_fp16)."""
+    import torch
+
+    if precision_arg == "bf16":
+        return True, False
+    if precision_arg == "fp16":
+        return False, True
+    if precision_arg == "fp32":
+        return False, False
+
+    # auto: bf16 仅在 Ampere (sm_80+) 及以上支持
+    if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+        cap = torch.cuda.get_device_capability(0)
+        print(f"[precision] GPU 支持 bf16 (compute capability {cap[0]}.{cap[1]})，使用 bf16")
+        return True, False
+    if torch.cuda.is_available():
+        cap = torch.cuda.get_device_capability(0)
+        print(f"[precision] GPU compute capability {cap[0]}.{cap[1]} 不支持 bf16，使用 fp16")
+        return False, True
+    print("[precision] WARNING: 无 GPU 可用，使用 fp32（训练会很慢）")
+    return False, False
+
+
+def _resolve_optim(optim_arg: str) -> str:
+    """选优化器。auto 时优先 adamw_8bit（需要 bitsandbytes），fallback adamw_torch。"""
+    if optim_arg != "auto":
+        return optim_arg
+    try:
+        import bitsandbytes  # noqa: F401
+        print("[optim] bitsandbytes 可用，使用 adamw_8bit（省显存）")
+        return "adamw_8bit"
+    except ImportError:
+        print("[optim] bitsandbytes 不可用，使用 adamw_torch")
+        return "adamw_torch"
 
 
 def load_model_with_lora_unsloth(args):
@@ -104,10 +149,9 @@ def load_model_with_lora_native(args):
 
     print(f"[load] transformers + peft: {model_name}")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=dtype,
+        torch_dtype=torch.bfloat16,
         device_map="auto",
     )
     model.gradient_checkpointing_enable()
@@ -133,7 +177,7 @@ def load_model_with_lora(args):
     if use_unsloth:
         try:
             model, tokenizer = load_model_with_lora_unsloth(args)
-        except (ImportError, RuntimeError) as e:
+        except ImportError as e:
             print(f"[load] Unsloth unavailable ({e}), falling back to native.")
             model, tokenizer = load_model_with_lora_native(args)
     else:
@@ -173,12 +217,20 @@ def load_dataset_for_qwen(args, tokenizer):
 
 
 def build_trainer(args, model, tokenizer, dataset):
+    """构建 SFTTrainer。兼容 trl 0.8 - 0.20+ 的 API 变化。"""
+    import inspect
+
     from trl import SFTConfig, SFTTrainer
 
-    import torch
-    _bf16_ok = torch.cuda.is_bf16_supported() if torch.cuda.is_available() else False
+    # 精度 + 优化器探测
+    use_bf16, use_fp16 = _resolve_precision(args.precision)
+    optim = _resolve_optim(args.optim)
 
-    config = SFTConfig(
+    # SFTConfig 的 max_seq_length / dataset_text_field 在不同 trl 版本里
+    # 有的叫 max_length, 有的还叫 max_seq_length。用 inspect 看实际接受什么。
+    sft_config_params = set(inspect.signature(SFTConfig).parameters.keys())
+
+    config_kwargs = dict(
         output_dir=str(args.output_dir),
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
@@ -193,23 +245,39 @@ def build_trainer(args, model, tokenizer, dataset):
         eval_steps=args.eval_steps,
         save_strategy="epoch",
         save_total_limit=2,
-        bf16=_bf16_ok,
-        fp16=not _bf16_ok,
-        optim="adamw_8bit",
+        bf16=use_bf16,
+        fp16=use_fp16,
+        optim=optim,
         seed=args.seed,
-        max_seq_length=args.max_seq_len,
-        dataset_text_field="text",
         packing=False,
         report_to="none",
     )
 
-    return SFTTrainer(
+    # max_seq_length 旧名；max_length 新名（trl ≥ 0.16）
+    if "max_seq_length" in sft_config_params:
+        config_kwargs["max_seq_length"] = args.max_seq_len
+    elif "max_length" in sft_config_params:
+        config_kwargs["max_length"] = args.max_seq_len
+
+    if "dataset_text_field" in sft_config_params:
+        config_kwargs["dataset_text_field"] = "text"
+
+    config = SFTConfig(**config_kwargs)
+
+    # SFTTrainer 在 trl 0.13+ 把 tokenizer 改名为 processing_class
+    trainer_params = set(inspect.signature(SFTTrainer).parameters.keys())
+    trainer_kwargs = dict(
         model=model,
-        tokenizer=tokenizer,
         args=config,
         train_dataset=dataset["train"],
         eval_dataset=dataset["validation"],
     )
+    if "processing_class" in trainer_params:
+        trainer_kwargs["processing_class"] = tokenizer
+    else:
+        trainer_kwargs["tokenizer"] = tokenizer
+
+    return SFTTrainer(**trainer_kwargs)
 
 
 def run_smoke_test(model, tokenizer) -> None:

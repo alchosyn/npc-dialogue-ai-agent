@@ -1,19 +1,22 @@
 # Training dependencies for SFT / LoRA fine-tuning of Qwen2.5-1.5B
 # Install in a Kaggle notebook or Colab Pro GPU runtime.
 
-# Base training stack
+# Base training stack（版本范围按 2024 末 - 2025 兼容性测试过）
 torch>=2.1.0
-transformers>=4.40.0
+transformers>=4.40.0,<5.0.0
 peft>=0.10.0
-trl>=0.8.0
+trl>=0.8.0,<1.0.0
 datasets>=2.18.0
 accelerate>=0.28.0
 
+# 8-bit AdamW 优化器（adamw_8bit）依赖此包，省显存
+# Kaggle T4 上有时需要 bitsandbytes-cuda118 / cuda121 匹配版本
+bitsandbytes>=0.43.0
+
 # Optional acceleration on consumer GPUs (T4/P100/A100):
-# unsloth has its own pip install command per CUDA version; see
-# https://github.com/unslothai/unsloth#installation-instructions
-# Example for Kaggle T4:
-#   pip install "unsloth[kaggle-new] @ git+https://github.com/unslothai/unsloth.git"
+# Unsloth 现在官方推荐直接 pip install unsloth，自动选 CUDA wheel：
+#   pip install unsloth
+# 详细见 https://github.com/unslothai/unsloth#installation-instructions
 
 # Eval helpers
 scipy>=1.10.0
