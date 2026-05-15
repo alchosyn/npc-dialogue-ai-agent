@@ -207,12 +207,36 @@ python evals/run_compare.py --strategies all \
 - risk_score 为确定性规则，对谐音、黑话等变体覆盖有限
 - 1.5B + LoRA 在 tone / citation 上离 RAG agent 仍有 35%+ 差距（详见评估结果章节）
 
+## 工程反思：verifiable reward 是 agent 产品化的隐形门槛
+
+跑完整套实验后回头看，本项目最值得记下的不是某项技术，而是一个关于 agent 落地的判断：**reward 能不能被机器自动打分，决定了这个 agent 能不能进入「自我提升」循环。**
+
+把 agent 项目按 reward 性质粗分两类：
+
+| 类型 | 例子 | reward 来源 | 能否扩规模 RL |
+|---|---|---|---|
+| Verifiable | 代码 / 数学 / SQL / 网页自动化 / API tool calling | 编译通过、单测过、查询结果对比、任务完成 —— 程序化 0/1 | ✅ 每秒可 score 数千样本 |
+| Subjective | 反诈对话 / 客服 / 心理咨询 / 创意写作 | 人工评分或 LLM-as-judge —— 慢、贵、噪音大 | ❌ 单位 reward 成本不随规模下降 |
+
+DeepSeek-R1 / Cursor / Devin 能用 RL 把效果训到 SOTA，本质都因为前者：**reward 函数能跑在 CI 里，给 GRPO 提供可扩展的训练信号**。
+
+本项目的反诈对话属于后者。这就是为什么 LoRA SFT 在 220 样本上只拿到 +0.05 提升 —— 不全是数据量问题，更深的限制是**没法廉价生成新的高质量 (input, expected_output) 对**。扩到 5000 样本仍要靠人工或大模型蒸馏，每条数据的边际成本不下降。
+
+**如果再做 agent 项目，会先问自己三个问题（按重要性排序）：**
+
+1. 这个任务的 reward 能不能跑在 unit test 里？能 → verifiable，可走 RL；不能 → 老老实实做好 RAG + prompt + LLM-as-judge eval
+2. 训练数据能不能从 production trace 里自然采集？能 → 闭环 self-improving；不能 → 数据是上限
+3. 业务方能否定义"明确的对错"？不能 → 别想训 reward model，做好评估循环就够
+
+这条判断标准应该**早于**"选什么模型 / 用什么框架"。是 ML engineer 跟 ML researcher 真正的分水岭。
+
 ## 简历范本句（基于实测数据）
 
 > **NPC Dialogue AI Agent —— 中文反诈安全意识助手**（个人项目 · [GitHub](https://github.com/alchosyn/npc-dialogue-ai-agent)）
 > - 基于 DeepSeek-V3 + 自建 RAG（55 条权威知识库，BM25 + 向量混合检索 + query rewriting）构建中文反诈对话 Agent，自研 5 个工具（含确定性规则风险打分器 + prompt injection 护栏）
 > - 设计 4 路对比评估管线（DeepSeek 裸调 / + RAG agent / Qwen2.5-1.5B base / + LoRA），使用 LLM-as-Judge 在 4 维度（accuracy / actionability / citation / tone）上量化打分
 > - **关键 ablation 发现：RAG + tools 工程层贡献 (+0.83/5 overall) 超过将基座从 1.5B 换到 V3 级（~100× 容量，+0.65/5），证明垂直域 LLM 应用工程层 ROI 高于模型层；citation 维度 RAG 贡献 +2.00/5 是没有 RAG 时的两倍以上，量化了 RAG 在受监管场景的不可替代性**
+> - **总结出 verifiable vs subjective reward 的项目选型判准**：本项目属于 subjective reward 类（reward 靠 LLM-as-judge 给），定量解释了为什么 220 样本 SFT 提升仅 +0.05/5，并据此提出 agent 项目立项前应先评估 reward 的可程序化程度
 > - 完整 SFT 管线：50 条手工种子 → LLM 扩展至 220 条 → Qwen2.5-1.5B + LoRA (rank 16) 在 Kaggle T4 训练（Unsloth 加速，bf16/fp16 自动适配），双轨 eval（规则匹配 + LLM-Judge）+ spearman ρ 一致性分析
 > - 技术栈：Python 包结构 / DeepSeek API / sentence-transformers / rank-bm25 / transformers + peft + trl / Unsloth
 
