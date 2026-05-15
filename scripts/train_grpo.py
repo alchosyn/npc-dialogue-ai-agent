@@ -23,8 +23,13 @@ import os
 import sys
 from pathlib import Path
 
-# 把 scripts/ 加进 path 以便 import grpo_reward
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# 路径设置：scripts/ 用于 import grpo_reward；src/ 用于 import npc_agent；
+# evals/ 用于 import judge（reward 函数链路上会用到）
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _SCRIPTS_DIR.parent
+sys.path.insert(0, str(_SCRIPTS_DIR))
+sys.path.insert(0, str(_PROJECT_ROOT / "src"))
+sys.path.insert(0, str(_PROJECT_ROOT / "evals"))
 
 
 def parse_args() -> argparse.Namespace:
@@ -154,20 +159,17 @@ def load_grpo_dataset(args):
 
 
 def make_reward_func(judge_workers: int):
-    """构造 reward function 闭包，捕获 judge client。"""
-    from grpo_reward import batch_compute_reward
-    from npc_agent.llm_client import get_client
+    """构造 reward function 闭包。
 
-    # 在闭包外初始化一次 judge_client（避免每次 reward call 重建）
-    _judge_client_singleton = get_client()
+    reward 链路：batch_compute_reward → compute_reward → judge_client。
+    judge_client 用 evals/judge.py 的 llm_judge（它内部自己管 DeepSeek client，
+    复用 npc_agent.llm_client 的进程级单例，不需要这里再传 client）。
+    """
+    from grpo_reward import batch_compute_reward
+    from judge import llm_judge  # evals/ 已在 sys.path（见文件顶部）
 
     def _judge_via_client(case, reply):
-        """匹配 grpo_reward 期望的 judge_client 签名。"""
-        # 复用 evals/judge.py 的 llm_judge —— 但通过 singleton client
-        evals_dir = Path(__file__).resolve().parent.parent / "evals"
-        if str(evals_dir) not in sys.path:
-            sys.path.insert(0, str(evals_dir))
-        from judge import llm_judge
+        """匹配 grpo_reward 期望的 judge_client 签名 (case, reply) -> {overall: ...}."""
         return llm_judge(case, reply)
 
     def reward_func(prompts, completions, scenario_keywords=None, **kwargs):
