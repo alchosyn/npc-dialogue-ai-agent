@@ -25,6 +25,9 @@ data/sft_expanded.jsonl
 data/sft_train.jsonl
 data/sft_val.jsonl
 
+# GRPO 生成数据（由 scripts/build_grpo_dataset.py 重生成）
+data/grpo_train.jsonl
+
 # 训练产物（adapter 太大不入仓库；推 HF Hub 或单独下载）
 outputs/
 *.safetensors

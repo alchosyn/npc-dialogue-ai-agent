@@ -72,25 +72,29 @@ def infer_deepseek_agent(user_input: str) -> str:
     return reply
 
 
-# ─── 策略 3 & 4: Qwen (base or +LoRA) ─────────────
+# ─── 策略 3-5: Qwen (base / +LoRA / +GRPO) ─────────────
+#
+# 注意：之前用单一全局 _qwen_model 缓存——同一进程里跑 qwen-base 然后 qwen-lora 时，
+# qwen-lora 会返回 cache 里的 base 模型，根本没装 adapter。这是 silent bug，
+# 让之前 4 路对比的 qwen-lora 实际等于 qwen-base。修法：用 dict cache，
+# key 包含 lora_path。
 
 
-_qwen_model = None
-_qwen_tokenizer = None
+_qwen_cache: dict[tuple[str, str | None], tuple] = {}
 
 
 def _load_qwen(base_name: str, lora_path: str | None = None):
-    """惰性加载 Qwen，避免没 GPU 的环境 import 就崩。"""
-    global _qwen_model, _qwen_tokenizer
-    if _qwen_model is not None:
-        return _qwen_model, _qwen_tokenizer
+    """惰性加载 Qwen，按 (base, adapter) 组合缓存。"""
+    key = (base_name, lora_path)
+    if key in _qwen_cache:
+        return _qwen_cache[key]
 
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    print(f"[qwen] loading base: {base_name}")
-    _qwen_tokenizer = AutoTokenizer.from_pretrained(base_name)
-    _qwen_model = AutoModelForCausalLM.from_pretrained(
+    print(f"[qwen] loading base: {base_name} (adapter: {lora_path or 'none'})")
+    tokenizer = AutoTokenizer.from_pretrained(base_name)
+    model = AutoModelForCausalLM.from_pretrained(
         base_name,
         torch_dtype=torch.bfloat16,
         device_map="auto",
@@ -99,11 +103,12 @@ def _load_qwen(base_name: str, lora_path: str | None = None):
     if lora_path:
         from peft import PeftModel
         print(f"[qwen] loading LoRA adapter: {lora_path}")
-        _qwen_model = PeftModel.from_pretrained(_qwen_model, lora_path)
-        _qwen_model = _qwen_model.merge_and_unload()  # 合并 LoRA 加速推理
+        model = PeftModel.from_pretrained(model, lora_path)
+        model = model.merge_and_unload()  # 合并 LoRA 加速推理
 
-    _qwen_model.eval()
-    return _qwen_model, _qwen_tokenizer
+    model.eval()
+    _qwen_cache[key] = (model, tokenizer)
+    return model, tokenizer
 
 
 def _make_qwen_inferer(base_name: str, lora_path: str | None) -> Callable[[str], str]:
@@ -288,18 +293,19 @@ def main() -> None:
         "--strategies",
         nargs="+",
         default=["deepseek-base", "deepseek-agent"],
-        choices=["deepseek-base", "deepseek-agent", "qwen-base", "qwen-lora", "all"],
-        help="跑哪几路",
+        choices=["deepseek-base", "deepseek-agent", "qwen-base", "qwen-lora", "qwen-grpo", "all"],
+        help="跑哪几路。'all' 包括 5 路（含 qwen-grpo）",
     )
     parser.add_argument("--qwen-base-name", default="Qwen/Qwen2.5-1.5B-Instruct")
-    parser.add_argument("--qwen-lora-path", default=None, help="LoRA adapter 目录")
+    parser.add_argument("--qwen-lora-path", default=None, help="SFT LoRA adapter 目录")
+    parser.add_argument("--qwen-grpo-path", default=None, help="GRPO 后的 adapter 目录")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--no-judge", action="store_true", help="跳过 LLM-as-judge")
     args = parser.parse_args()
 
     strategies = args.strategies
     if "all" in strategies:
-        strategies = ["deepseek-base", "deepseek-agent", "qwen-base", "qwen-lora"]
+        strategies = ["deepseek-base", "deepseek-agent", "qwen-base", "qwen-lora", "qwen-grpo"]
 
     # 注册策略 inferers
     inferers: dict[str, Callable[[str], str]] = {}
@@ -311,9 +317,19 @@ def main() -> None:
         inferers["qwen-base"] = _make_qwen_inferer(args.qwen_base_name, lora_path=None)
     if "qwen-lora" in strategies:
         if not args.qwen_lora_path:
-            print("ERROR: --qwen-lora-path 必填（指向训练好的 adapter 目录）")
+            print("ERROR: --qwen-lora-path 必填（指向训练好的 SFT adapter 目录）")
             sys.exit(1)
         inferers["qwen-lora"] = _make_qwen_inferer(args.qwen_base_name, lora_path=args.qwen_lora_path)
+    if "qwen-grpo" in strategies:
+        if not args.qwen_grpo_path:
+            # all 模式下如果没传 grpo path，跳过这一路而不是崩
+            if "all" in args.strategies:
+                print("[skip] --qwen-grpo-path 未提供，跳过 qwen-grpo 策略")
+            else:
+                print("ERROR: --qwen-grpo-path 必填（指向 GRPO 后 adapter 目录）")
+                sys.exit(1)
+        else:
+            inferers["qwen-grpo"] = _make_qwen_inferer(args.qwen_base_name, lora_path=args.qwen_grpo_path)
 
     cases = load_cases(args.limit)
     cases_by_id = {c["id"]: c for c in cases}
