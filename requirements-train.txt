@@ -18,10 +18,10 @@ bitsandbytes>=0.43.0
 #   pip install unsloth
 # 详细见 https://github.com/unslothai/unsloth#installation-instructions
 
-# GRPO 专用：trl 的 GRPOTrainer import 时连锁 mergekit（这版 trl 没软导入）。
-# Kaggle 不预装，缺它会 RuntimeError: Failed to import trl.trainer.grpo_trainer。
-# 装时建议 --no-deps，避免改动已装好的 torch/transformers。
-mergekit
+# 注：trl 的 GRPOTrainer import 时连锁 mergekit（模型合并工具）。
+# 不在这列 mergekit —— scripts/train_grpo.py 的 _ensure_mergekit_importable()
+# 会注入桩绕开它，GRPO 不用模型合并。装真 mergekit 反而要追一长串
+# 传递依赖（immutables 等），桩更省事且确定性更高。
 
 # Eval helpers
 scipy>=1.10.0
