@@ -35,7 +35,7 @@ JUDGE_NEUTRAL = make_mock_judge(3.0)
 def test_empty_completion_returns_min():
     """空回复直接返回最低分。"""
     r = compute_reward("", user_input="测试", judge_client=JUDGE_5)
-    assert r == -1.5
+    assert r == -2.5
 
 
 def test_judge_dominates_signal():
@@ -109,8 +109,8 @@ def test_emergency_auto_detect_from_user_input():
 
 
 def test_score_clamped_to_range():
-    """总分应被 clamp 到 [-1.5, 4]。"""
-    # 极端情况：judge 5 + R2 + R3 - 0 - 0 = 3 + 0.5 + 0.5 = 4，刚好顶到 4
+    """总分应被 clamp 到 [-2.5, 4]。"""
+    # 极端情况：judge 5 + R2 + R3 = 3 + 0.5 + 0.5 = 4，刚好顶到 4
     perfect = compute_reward(
         "立即拨 96110。1. 挂断电话 2. 报案 3. 联系银行止付",
         user_input="问题",
@@ -126,7 +126,63 @@ def test_score_clamped_to_range():
         scenario_keywords=["被骗"],
         judge_client=JUDGE_1,
     )
-    assert awful >= -1.5
+    assert awful >= -2.5
+
+
+# ─── 反 judge structure-bias 护栏测试 ──────────────────────
+
+
+def test_markdown_scaffolding_penalized():
+    """markdown 标题/分隔线 → 罚 3 -0.5。"""
+    plain = compute_reward(
+        "是诈骗。立刻挂断，别回拨，拨 96110 咨询。",
+        user_input="问题", judge_client=JUDGE_3,
+    )
+    ai_flavor = compute_reward(
+        "## 立刻行动\n\n是诈骗。\n\n---\n\n打 96110 咨询。",
+        user_input="问题", judge_client=JUDGE_3,
+    )
+    assert ai_flavor < plain  # 同 judge 分，markdown 那条被罚 -0.5
+
+
+def test_emoji_bullets_penalized():
+    """emoji / 圈数字分点 → 罚 3。"""
+    plain = compute_reward(
+        "是诈骗，别理它，拨 96110。",
+        user_input="问题", judge_client=JUDGE_3,
+    )
+    emoji = compute_reward(
+        "⚠️ 警告！是诈骗 ① 别回复 ② 拨 96110 ③ 举报",
+        user_input="问题", judge_client=JUDGE_3,
+    )
+    assert emoji < plain
+
+
+def test_inline_steps_not_penalized():
+    """信噪式 inline 1.2.3.（无换行无 markdown）应拿 R2 +0.5，且不触发罚 3。"""
+    xinzao_style = compute_reward(
+        "是钓鱼短信。三件事：1. 别点链接 2. 工行客服只走 95588 3. 已点立即拨 96110",
+        user_input="问题", judge_client=JUDGE_3,
+    )
+    no_steps = compute_reward(
+        "是钓鱼短信，别点链接，拨 96110。",
+        user_input="问题", judge_client=JUDGE_3,
+    )
+    # inline 步骤拿 R2 +0.5，不被罚 3（因为没换行+markdown），所以应该更高
+    assert xinzao_style > no_steps
+
+
+def test_overlength_penalized():
+    """超 400 字 → 罚 4 -0.5。"""
+    short = compute_reward(
+        "是诈骗，拨 96110。",
+        user_input="问题", judge_client=JUDGE_3,
+    )
+    long_winded = compute_reward(
+        "这是一个非常典型的诈骗案例，" * 40,  # > 400 字的啰嗦回复
+        user_input="问题", judge_client=JUDGE_3,
+    )
+    assert long_winded < short
 
 
 def test_judge_failure_falls_back_to_neutral():
@@ -155,6 +211,10 @@ if __name__ == "__main__":
         test_emergency_short_penalty,
         test_emergency_auto_detect_from_user_input,
         test_score_clamped_to_range,
+        test_markdown_scaffolding_penalized,
+        test_emoji_bullets_penalized,
+        test_inline_steps_not_penalized,
+        test_overlength_penalized,
     ]
     n_pass = 0
     for t in tests:
