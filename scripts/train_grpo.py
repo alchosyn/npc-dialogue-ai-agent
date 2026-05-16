@@ -237,12 +237,13 @@ def make_reward_func(judge_workers: int):
 def _stub_trl_optional_deps() -> None:
     """给 trl 的硬 import 可选依赖塞桩，GRPO 不用它们但缺了就 import 不了 GRPOTrainer。
 
-    trl 的 import 链: grpo_trainer → callbacks → judges → llm_blender,
-    以及 mergekit_utils → mergekit。这些包要么装不上（mergekit 传递依赖地狱），
-    要么和当前 transformers 版本不兼容（llm_blender 引用已删除的 TRANSFORMERS_CACHE）。
-    GRPO 训练完全不用这些功能，桩永远不会被真调用。
+    trl 这版 callbacks.py 连锁硬 import: mergekit / llm_blender / weave 等。
+    这些包要么装不上、要么和当前 transformers 不兼容、要么 Kaggle 没预装。
+    GRPO 训练完全不用这些功能。
+
+    策略：不再逐个试 import（有的包存在但 import 半途崩，残留碎片盖住桩），
+    直接无条件强制注入桩，保证 trl import 链不断。
     """
-    import importlib
     import importlib.machinery
     import sys
     import types
@@ -259,39 +260,27 @@ def _stub_trl_optional_deps() -> None:
                 return None
             return type(name, (), {"__init__": lambda self, *a, **k: None})
 
-    def _inject(pkg: str, submodules: list[str]) -> bool:
-        """尝试真 import，失败则注入桩。返回是否注入了桩。"""
-        try:
-            importlib.import_module(pkg)
-            return False
-        except Exception:
-            pass
-        # 清理失败 import 残留的碎片（半装的真包会盖住桩）
+    _PKGS = {
+        "mergekit": ["config", "common", "merge", "options",
+                     "architecture", "io", "plan"],
+        "llm_blender": ["blender", "blender.blender",
+                        "blender.blender_utils"],
+        "weave": [],
+    }
+
+    for pkg, subs in _PKGS.items():
         for key in list(sys.modules):
             if key == pkg or key.startswith(pkg + "."):
                 del sys.modules[key]
-        all_mods = [pkg] + [f"{pkg}.{s}" for s in submodules]
-        for modname in all_mods:
+        for modname in [pkg] + [f"{pkg}.{s}" for s in subs]:
             mod = _AnyModule(modname)
             mod.__file__ = f"<stub:{modname}>"
             mod.__spec__ = importlib.machinery.ModuleSpec(modname, None)
             mod.__path__ = []
             mod.__package__ = modname.rsplit(".", 1)[0] if "." in modname else modname
             sys.modules[modname] = mod
-        return True
 
-    stubbed = []
-    if _inject("mergekit", ["config", "common", "merge", "options",
-                             "architecture", "io", "plan"]):
-        stubbed.append("mergekit")
-    if _inject("llm_blender", ["blender", "blender.blender",
-                                "blender.blender_utils"]):
-        stubbed.append("llm_blender")
-
-    if stubbed:
-        print(f"[grpo] 已注入桩: {', '.join(stubbed)}（GRPO 不用，安全）")
-    else:
-        print("[grpo] mergekit/llm_blender 均可用")
+    print(f"[grpo] 已注入桩: {', '.join(_PKGS)}（GRPO 不用，安全）")
 
 
 def build_trainer(args, model, tokenizer, dataset, reward_func):
