@@ -247,6 +247,7 @@ def _ensure_mergekit_importable() -> None:
     merge 功能 GRPO 永不触发，桩永远不会被真调用。
     """
     import importlib
+    import importlib.machinery
     import sys
     import types
 
@@ -258,12 +259,9 @@ def _ensure_mergekit_importable() -> None:
         pass
 
     class _AnyModule(types.ModuleType):
-        # 任何属性访问都返回一个无害的占位类
         def __getattr__(self, name: str):
             return type(name, (), {"__init__": lambda self, *a, **k: None})
 
-    # 无条件覆盖：半装的坏 mergekit 可能在 import 失败后于 sys.modules
-    # 残留碎片，会盖住桩。这里强制替换所有 mergekit* 入口。
     for modname in (
         "mergekit",
         "mergekit.config",
@@ -274,7 +272,11 @@ def _ensure_mergekit_importable() -> None:
         "mergekit.io",
         "mergekit.plan",
     ):
-        sys.modules[modname] = _AnyModule(modname)
+        mod = _AnyModule(modname)
+        mod.__spec__ = importlib.machinery.ModuleSpec(modname, None)
+        mod.__path__ = []
+        mod.__package__ = modname.rsplit(".", 1)[0] if "." in modname else modname
+        sys.modules[modname] = mod
     print("[grpo] mergekit 不可用，已注入桩（GRPO 不用模型合并，安全）")
 
 
