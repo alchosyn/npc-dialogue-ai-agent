@@ -234,29 +234,18 @@ def make_reward_func(judge_workers: int):
 # ─── Trainer 构建 ─────────────────────────────────────
 
 
-def _ensure_mergekit_importable() -> None:
-    """给 trl 塞个 mergekit 桩，绕开它的无条件可选 import。
+def _stub_trl_optional_deps() -> None:
+    """给 trl 的硬 import 可选依赖塞桩，GRPO 不用它们但缺了就 import 不了 GRPOTrainer。
 
-    背景：trl 的 callbacks.py 顶层 `from ..mergekit_utils import ...`，
-    mergekit_utils 又 `from mergekit.config import ...`。mergekit 是模型
-    合并工具，GRPO 训练完全不用它，但这版 trl 没做软导入，缺 mergekit
-    （或它的传递依赖如 immutables）就 import 不了 GRPOTrainer。
-
-    与其在 Kaggle 上满地追 mergekit 的依赖（immutables → 下一个 → ...），
-    不如塞个万能桩：任何 `from mergekit.X import Y` 都返回无害占位类。
-    merge 功能 GRPO 永不触发，桩永远不会被真调用。
+    trl 的 import 链: grpo_trainer → callbacks → judges → llm_blender,
+    以及 mergekit_utils → mergekit。这些包要么装不上（mergekit 传递依赖地狱），
+    要么和当前 transformers 版本不兼容（llm_blender 引用已删除的 TRANSFORMERS_CACHE）。
+    GRPO 训练完全不用这些功能，桩永远不会被真调用。
     """
     import importlib
     import importlib.machinery
     import sys
     import types
-
-    try:
-        importlib.import_module("mergekit.config")
-        importlib.import_module("mergekit.common")
-        return  # 真 mergekit 完全可用，不塞桩
-    except Exception:
-        pass
 
     _PASSTHROUGH = frozenset({
         "__file__", "__loader__", "__all__", "__version__",
@@ -270,30 +259,42 @@ def _ensure_mergekit_importable() -> None:
                 return None
             return type(name, (), {"__init__": lambda self, *a, **k: None})
 
-    for modname in (
-        "mergekit",
-        "mergekit.config",
-        "mergekit.common",
-        "mergekit.merge",
-        "mergekit.options",
-        "mergekit.architecture",
-        "mergekit.io",
-        "mergekit.plan",
-    ):
-        mod = _AnyModule(modname)
-        mod.__file__ = f"<mergekit_stub:{modname}>"
-        mod.__spec__ = importlib.machinery.ModuleSpec(modname, None)
-        mod.__path__ = []
-        mod.__package__ = modname.rsplit(".", 1)[0] if "." in modname else modname
-        sys.modules[modname] = mod
-    print("[grpo] mergekit 不可用，已注入桩（GRPO 不用模型合并，安全）")
+    def _inject(pkg: str, submodules: list[str]) -> bool:
+        """尝试真 import，失败则注入桩。返回是否注入了桩。"""
+        try:
+            importlib.import_module(pkg)
+            return False
+        except Exception:
+            pass
+        all_mods = [pkg] + [f"{pkg}.{s}" for s in submodules]
+        for modname in all_mods:
+            mod = _AnyModule(modname)
+            mod.__file__ = f"<stub:{modname}>"
+            mod.__spec__ = importlib.machinery.ModuleSpec(modname, None)
+            mod.__path__ = []
+            mod.__package__ = modname.rsplit(".", 1)[0] if "." in modname else modname
+            sys.modules[modname] = mod
+        return True
+
+    stubbed = []
+    if _inject("mergekit", ["config", "common", "merge", "options",
+                             "architecture", "io", "plan"]):
+        stubbed.append("mergekit")
+    if _inject("llm_blender", ["blender", "blender.blender",
+                                "blender.blender_utils"]):
+        stubbed.append("llm_blender")
+
+    if stubbed:
+        print(f"[grpo] 已注入桩: {', '.join(stubbed)}（GRPO 不用，安全）")
+    else:
+        print("[grpo] mergekit/llm_blender 均可用")
 
 
 def build_trainer(args, model, tokenizer, dataset, reward_func):
     """兼容不同 trl 版本构建 GRPOTrainer。"""
     import inspect
 
-    _ensure_mergekit_importable()  # 必须在 import GRPOTrainer 之前
+    _stub_trl_optional_deps()  # 必须在 import GRPOTrainer 之前
 
     try:
         from trl import GRPOConfig, GRPOTrainer
