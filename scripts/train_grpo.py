@@ -258,8 +258,16 @@ def _ensure_mergekit_importable() -> None:
     except Exception:
         pass
 
+    _PASSTHROUGH = frozenset({
+        "__file__", "__loader__", "__all__", "__version__",
+        "__author__", "__doc__", "__name__", "__spec__",
+        "__path__", "__package__", "__cached__",
+    })
+
     class _AnyModule(types.ModuleType):
         def __getattr__(self, name: str):
+            if name in _PASSTHROUGH:
+                return None
             return type(name, (), {"__init__": lambda self, *a, **k: None})
 
     for modname in (
@@ -273,6 +281,7 @@ def _ensure_mergekit_importable() -> None:
         "mergekit.plan",
     ):
         mod = _AnyModule(modname)
+        mod.__file__ = f"<mergekit_stub:{modname}>"
         mod.__spec__ = importlib.machinery.ModuleSpec(modname, None)
         mod.__path__ = []
         mod.__package__ = modname.rsplit(".", 1)[0] if "." in modname else modname
