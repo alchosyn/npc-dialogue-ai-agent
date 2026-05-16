@@ -266,6 +266,10 @@ def _stub_trl_optional_deps() -> None:
             return False
         except Exception:
             pass
+        # 清理失败 import 残留的碎片（半装的真包会盖住桩）
+        for key in list(sys.modules):
+            if key == pkg or key.startswith(pkg + "."):
+                del sys.modules[key]
         all_mods = [pkg] + [f"{pkg}.{s}" for s in submodules]
         for modname in all_mods:
             mod = _AnyModule(modname)
