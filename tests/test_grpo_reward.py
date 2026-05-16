@@ -11,7 +11,8 @@ from pathlib import Path
 # 把 scripts/ 加进 path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
-from grpo_reward import compute_reward  # noqa: E402
+from grpo_reward import batch_compute_reward, compute_reward  # noqa: E402
+from train_grpo import _to_text, _user_text  # noqa: E402
 
 
 # ─── Mock judge 函数 ─────────────────────────────────────
@@ -198,6 +199,55 @@ def test_judge_failure_falls_back_to_neutral():
         compute_reward("回复", user_input="问题", judge_client=broken_judge)
 
 
+# ─── 对话式（conversational）数据集形状测试 ─────────────────
+# build_grpo_dataset.py 现在产对话式 prompt，TRL 会把 completions/prompts
+# 以 list-of-messages 形回传 reward。train_grpo._to_text/_user_text 负责解包。
+
+
+def test_to_text_unwraps_conversational_completion():
+    assert _to_text([{"role": "assistant", "content": "打 96110"}]) == "打 96110"
+    assert _to_text("纯字符串") == "纯字符串"
+    assert _to_text([]) == ""
+
+
+def test_user_text_extracts_user_turn():
+    convo = [
+        {"role": "system", "content": "你是信噪"},
+        {"role": "user", "content": "我被骗了怎么办"},
+    ]
+    assert _user_text(convo) == "我被骗了怎么办"
+    assert _user_text("裸 prompt") == "裸 prompt"
+
+
+def test_batch_reward_handles_conversational_shapes():
+    """模拟 TRL 对话式回传：prompts/completions 都是 list-of-messages。
+    解包后喂 batch_compute_reward，应不抛 AttributeError 且长度对齐。"""
+    prompts = [
+        [{"role": "system", "content": "你是信噪"},
+         {"role": "user", "content": "我刚被骗了 5 万怎么办"}],
+        [{"role": "system", "content": "你是信噪"},
+         {"role": "user", "content": "这条短信是真的吗"}],
+    ]
+    completions = [
+        [{"role": "assistant",
+          "content": "立即拨 96110 申请止付。1. 别再转账 2. 报案 3. 联系银行"}],
+        [{"role": "assistant", "content": "是钓鱼短信，别点链接。"}],
+    ]
+    prompt_texts = [_user_text(p) for p in prompts]
+    completion_texts = [_to_text(c) for c in completions]
+    rewards = batch_compute_reward(
+        prompts=prompt_texts,
+        completions=completion_texts,
+        scenario_keywords_list=[["被骗"], []],
+        judge_client=JUDGE_3,
+        max_workers=2,
+    )
+    assert isinstance(rewards, list)
+    assert len(rewards) == 2
+    assert all(isinstance(x, float) for x in rewards)
+    assert all(-2.5 <= x <= 4.0 for x in rewards)
+
+
 if __name__ == "__main__":
     # 简易自测，不需要 pytest 也能跑
     import traceback
@@ -215,6 +265,9 @@ if __name__ == "__main__":
         test_emoji_bullets_penalized,
         test_inline_steps_not_penalized,
         test_overlength_penalized,
+        test_to_text_unwraps_conversational_completion,
+        test_user_text_extracts_user_turn,
+        test_batch_reward_handles_conversational_shapes,
     ]
     n_pass = 0
     for t in tests:

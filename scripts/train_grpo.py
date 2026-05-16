@@ -23,6 +23,11 @@ import os
 import sys
 from pathlib import Path
 
+# Windows 控制台默认 cp936/cp932，大量中文 print 会 UnicodeEncodeError 而中断训练日志。
+for _s in (sys.stdout, sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8")
+
 # 路径设置：scripts/ 用于 import grpo_reward；src/ 用于 import npc_agent；
 # evals/ 用于 import judge（reward 函数链路上会用到）
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -41,14 +46,19 @@ def parse_args() -> argparse.Namespace:
                    help="SFT 训出来的 LoRA adapter 目录（warm-start 起点）")
     p.add_argument("--output-dir", required=True, type=Path)
     # GRPO 关键超参
-    p.add_argument("--num-generations", type=int, default=8,
-                   help="每个 prompt 采样多少回答（GRPO 标志超参）")
-    p.add_argument("--max-prompt-length", type=int, default=512)
-    p.add_argument("--max-completion-length", type=int, default=512)
+    p.add_argument("--num-generations", type=int, default=4,
+                   help="每个 prompt 采样多少回答（GRPO 标志超参）。须满足 "
+                        "batch-size 与 batch-size×grad-accum 都能被它整除；"
+                        "8 理想但 16GB T4 易 OOM，4 是可用下限")
+    p.add_argument("--max-prompt-length", type=int, default=384)
+    p.add_argument("--max-completion-length", type=int, default=384,
+                   help="信噪种子答案均长 214 字，384 token 足够；越大越吃显存/judge 成本")
     # 训练超参（GRPO 必须比 SFT 小 2 个数量级）
     p.add_argument("--learning-rate", type=float, default=1e-6)
     p.add_argument("--num-train-epochs", type=float, default=2)
-    p.add_argument("--batch-size", type=int, default=2)
+    p.add_argument("--batch-size", type=int, default=4,
+                   help="per-device batch（TRL GRPO 里实为 completions 数）。"
+                        "须为 num-generations 的整数倍")
     p.add_argument("--grad-accum", type=int, default=4)
     p.add_argument("--seed", type=int, default=42)
     # 精度 / 优化器（同 train_lora.py 套路）
@@ -134,11 +144,19 @@ def _load_native(args):
     if "/" not in model_name:
         model_name = f"Qwen/{model_name}"
 
-    print(f"[load] transformers + peft: base={model_name}, adapter={args.sft_adapter}")
+    use_bf16, use_fp16 = _resolve_precision(args.precision)
+    if use_bf16:
+        dtype = torch.bfloat16
+    elif use_fp16:
+        dtype = torch.float16
+    else:
+        dtype = torch.float32
+
+    print(f"[load] transformers + peft: base={model_name}, adapter={args.sft_adapter}, dtype={dtype}")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     base = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.bfloat16,
+        torch_dtype=dtype,
         device_map="auto",
     )
     model = PeftModel.from_pretrained(base, str(args.sft_adapter), is_trainable=True)
@@ -158,6 +176,28 @@ def load_grpo_dataset(args):
 # ─── Reward function（包成 TRL 期望的 signature）──────────
 
 
+def _to_text(completion) -> str:
+    """TRL 对话式数据集回传的 completion 是 [{"role":"assistant","content":..}]，
+    非对话式是 str。统一成字符串给 compute_reward。"""
+    if isinstance(completion, list):
+        return completion[-1]["content"] if completion else ""
+    return completion
+
+
+def _user_text(prompt) -> str:
+    """对话式 prompt 是 [{system},{user}]，取最后一条 user 内容（judge 要纯问题串）。
+    非对话式是 str，原样返回。"""
+    if isinstance(prompt, list):
+        users = [
+            m["content"] for m in prompt
+            if isinstance(m, dict) and m.get("role") == "user"
+        ]
+        if users:
+            return users[-1]
+        return prompt[-1]["content"] if prompt else ""
+    return prompt
+
+
 def make_reward_func(judge_workers: int):
     """构造 reward function 闭包。
 
@@ -173,10 +213,16 @@ def make_reward_func(judge_workers: int):
         return llm_judge(case, reply)
 
     def reward_func(prompts, completions, scenario_keywords=None, **kwargs):
-        """TRL GRPOTrainer 期望的 signature：(prompts, completions, **dataset_columns) -> rewards."""
+        """TRL GRPOTrainer 期望的 signature：(prompts, completions, **dataset_columns) -> rewards.
+
+        对话式数据集下 prompts/completions 是 list-of-messages，先解包成字符串
+        （compute_reward 收字符串，其单测也按字符串写，保持不动）。
+        """
+        prompt_texts = [_user_text(p) for p in prompts]
+        completion_texts = [_to_text(c) for c in completions]
         return batch_compute_reward(
-            prompts=prompts,
-            completions=completions,
+            prompts=prompt_texts,
+            completions=completion_texts,
             scenario_keywords_list=scenario_keywords,
             judge_client=_judge_via_client,
             max_workers=judge_workers,
@@ -267,6 +313,9 @@ def build_trainer(args, model, tokenizer, dataset, reward_func):
         optim=optim,
         seed=args.seed,
         report_to="none",
+        # 显存：16GB T4 上 1.5B GRPO 采样+前后向吃紧，必须开梯度检查点
+        gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
         # GRPO 特有
         num_generations=args.num_generations,
         max_prompt_length=args.max_prompt_length,
@@ -276,6 +325,12 @@ def build_trainer(args, model, tokenizer, dataset, reward_func):
     # 过滤掉当前版本不支持的参数
     config_kwargs = {k: v for k, v in config_kwargs.items() if k in config_params}
     config = GRPOConfig(**config_kwargs)
+
+    # 梯度检查点 + PEFT(warm-start adapter) 同时开时，base 被冻结会导致
+    # backward 报 "element 0 of tensors does not require grad"。让 embedding
+    # 输出 require grad 打通梯度链路（幂等，非 PEFT 模型上也安全）。
+    if hasattr(model, "enable_input_require_grads"):
+        model.enable_input_require_grads()
 
     trainer_params = set(inspect.signature(GRPOTrainer).parameters.keys())
     trainer_kwargs = dict(
@@ -295,6 +350,46 @@ def build_trainer(args, model, tokenizer, dataset, reward_func):
 # ─── 主流程 ───────────────────────────────────────────
 
 
+def _preflight(args) -> None:
+    """把"训到一半/训完才暴露"的失败提前到加载模型之前。"""
+    # 1) batch / num_generations 自洽（TRL GRPO 的 divisible 约束，版本相关：
+    #    旧 TRL 看 batch_size，新 TRL 看 batch_size×grad_accum，这里两边都卡）
+    gen = args.num_generations
+    gen_bs = args.batch_size * args.grad_accum
+    if gen < 2 or args.batch_size % gen != 0 or gen_bs % gen != 0:
+        print(
+            "ERROR: batch / num_generations 不匹配。\n"
+            f"  --num-generations={gen} --batch-size={args.batch_size} "
+            f"--grad-accum={args.grad_accum} (batch×grad-accum={gen_bs})\n"
+            "  TRL GRPO 要求 num_generations>=2，且 batch-size 与 "
+            "batch-size×grad-accum 都能被 num_generations 整除。\n"
+            "  改法：把 --batch-size 设成 --num-generations 的整数倍，"
+            "或调小 --num-generations。\n"
+            "  若 TRL 仍报 'must be evenly divisible'，按它打印的 "
+            "valid values 列表选 --num-generations。"
+        )
+        sys.exit(1)
+    print(f"[preflight] batch 自检 OK (num_generations={gen}, "
+          f"batch={args.batch_size}, grad_accum={args.grad_accum})")
+
+    # 2) judge / DEEPSEEK_API_KEY 真能用（否则整轮 reward 静默退化成常数 3.0，
+    #    白训一整轮还没报错）。成本 1 次 API 调用，可接受。
+    try:
+        from judge import llm_judge
+        probe = llm_judge(
+            {"user_input": "测试", "scenario_type": "", "expected_keywords": []},
+            "测试回复。",
+        )
+        if not isinstance(probe, dict) or "overall" not in probe:
+            raise RuntimeError(f"judge 返回结构异常: {probe!r}")
+    except SystemExit:
+        raise
+    except Exception as e:
+        print(f"ERROR: judge 自检失败，reward 链路不可用，训练无意义: {e}")
+        sys.exit(1)
+    print(f"[preflight] judge 自检 OK (overall={probe['overall']})")
+
+
 def main() -> None:
     args = parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -303,6 +398,8 @@ def main() -> None:
     if not os.environ.get("DEEPSEEK_API_KEY"):
         print("ERROR: 需要 DEEPSEEK_API_KEY 环境变量（reward function 调 judge API）")
         sys.exit(1)
+
+    _preflight(args)
 
     try:
         import torch

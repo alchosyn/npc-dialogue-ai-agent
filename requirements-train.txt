@@ -5,7 +5,9 @@
 torch>=2.1.0
 transformers>=4.40.0,<5.0.0
 peft>=0.10.0
-trl>=0.8.0,<1.0.0
+# GRPOTrainer 需要 trl>=0.18（0.8 没有 GRPO）。与 scripts/train_grpo.py 的
+# ImportError 提示一致。Kaggle 走 unsloth 装不受此行影响。
+trl>=0.18,<0.25
 datasets>=2.18.0
 accelerate>=0.28.0
 
