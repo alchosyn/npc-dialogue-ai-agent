@@ -278,19 +278,18 @@ def _stub_trl_optional_deps() -> None:
         sys.modules[pkg] = _make_stub(pkg)
 
     # meta_path finder：自动拦截这些包的任意子模块（不用手动列举）
-    class _StubFinder(importlib.abc.MetaPathFinder):
-        def find_module(self, fullname, path=None):
+    # 用 find_spec（Python 3.12 已移除 find_module）
+    class _StubFinder:
+        def find_spec(self, fullname, path, target=None):
             top = fullname.split(".")[0]
-            if top in _STUB_ROOTS:
-                return self
-            return None
-
-        def load_module(self, fullname):
+            if top not in _STUB_ROOTS:
+                return None
+            # 已经在 sys.modules 里的不重复处理
             if fullname in sys.modules:
-                return sys.modules[fullname]
+                return sys.modules[fullname].__spec__
             mod = _make_stub(fullname)
             sys.modules[fullname] = mod
-            return mod
+            return mod.__spec__
 
     sys.meta_path.insert(0, _StubFinder())
 
