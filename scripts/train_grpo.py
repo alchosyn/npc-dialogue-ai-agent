@@ -238,12 +238,12 @@ def _stub_trl_optional_deps() -> None:
     """给 trl 的硬 import 可选依赖塞桩，GRPO 不用它们但缺了就 import 不了 GRPOTrainer。
 
     trl 这版 callbacks.py 连锁硬 import: mergekit / llm_blender / weave 等。
-    这些包要么装不上、要么和当前 transformers 不兼容、要么 Kaggle 没预装。
+    这些包要么装不上、要么和当前 transformers 不兼容、要么环境没预装。
     GRPO 训练完全不用这些功能。
 
-    策略：不再逐个试 import（有的包存在但 import 半途崩，残留碎片盖住桩），
-    直接无条件强制注入桩，保证 trl import 链不断。
+    策略：预注入已知子模块 + 注册 meta_path finder 自动拦截任何新冒出的子模块。
     """
+    import importlib.abc
     import importlib.machinery
     import sys
     import types
@@ -260,27 +260,41 @@ def _stub_trl_optional_deps() -> None:
                 return None
             return type(name, (), {"__init__": lambda self, *a, **k: None})
 
-    _PKGS = {
-        "mergekit": ["config", "common", "merge", "options",
-                     "architecture", "io", "plan"],
-        "llm_blender": ["blender", "blender.blender",
-                        "blender.blender_utils"],
-        "weave": [],
-    }
+    _STUB_ROOTS = {"mergekit", "llm_blender", "weave"}
 
-    for pkg, subs in _PKGS.items():
+    def _make_stub(modname: str) -> _AnyModule:
+        mod = _AnyModule(modname)
+        mod.__file__ = f"<stub:{modname}>"
+        mod.__spec__ = importlib.machinery.ModuleSpec(modname, None)
+        mod.__path__ = []
+        mod.__package__ = modname.rsplit(".", 1)[0] if "." in modname else modname
+        return mod
+
+    # 清理已有残留 + 预注入顶层包
+    for pkg in _STUB_ROOTS:
         for key in list(sys.modules):
             if key == pkg or key.startswith(pkg + "."):
                 del sys.modules[key]
-        for modname in [pkg] + [f"{pkg}.{s}" for s in subs]:
-            mod = _AnyModule(modname)
-            mod.__file__ = f"<stub:{modname}>"
-            mod.__spec__ = importlib.machinery.ModuleSpec(modname, None)
-            mod.__path__ = []
-            mod.__package__ = modname.rsplit(".", 1)[0] if "." in modname else modname
-            sys.modules[modname] = mod
+        sys.modules[pkg] = _make_stub(pkg)
 
-    print(f"[grpo] 已注入桩: {', '.join(_PKGS)}（GRPO 不用，安全）")
+    # meta_path finder：自动拦截这些包的任意子模块（不用手动列举）
+    class _StubFinder(importlib.abc.MetaPathFinder):
+        def find_module(self, fullname, path=None):
+            top = fullname.split(".")[0]
+            if top in _STUB_ROOTS:
+                return self
+            return None
+
+        def load_module(self, fullname):
+            if fullname in sys.modules:
+                return sys.modules[fullname]
+            mod = _make_stub(fullname)
+            sys.modules[fullname] = mod
+            return mod
+
+    sys.meta_path.insert(0, _StubFinder())
+
+    print(f"[grpo] 已注入桩+finder: {', '.join(_STUB_ROOTS)}（GRPO 不用，安全）")
 
 
 def build_trainer(args, model, tokenizer, dataset, reward_func):
