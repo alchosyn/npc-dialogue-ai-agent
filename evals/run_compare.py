@@ -1,4 +1,4 @@
-"""四路对比评估：DeepSeek base / DeepSeek+Agent / Qwen base / Qwen+LoRA。
+"""五路对比评估：DeepSeek base / DeepSeek+Agent / Qwen base / Qwen+LoRA / Qwen+GRPO。
 
 每路对所有 case 跑一次，用 LLM-as-judge 给所有结果打 4 维度分（accuracy /
 actionability / citation / tone），输出对比报告。
@@ -223,7 +223,7 @@ def write_report(summary: dict, all_results: dict[str, list[dict]]) -> None:
     strategies = list(summary.keys())
 
     lines = [
-        "# 信噪 Agent · 四路对比评估",
+        "# 信噪 Agent · 五路对比评估",
         "",
         "## 总体得分（LLM-as-Judge，5 分制）",
         "",
