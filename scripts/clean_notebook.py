@@ -5,7 +5,7 @@ import nbformat
 
 
 def main() -> None:
-    path = Path(__file__).resolve().parents[1] / "NPC_agent.ipynb"
+    path = Path(__file__).resolve().parents[1] / "notebooks" / "NPC_agent.ipynb"
     nb = nbformat.read(path, as_version=4)
     if "widgets" in nb.metadata:
         del nb.metadata["widgets"]

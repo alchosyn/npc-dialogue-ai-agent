@@ -11,7 +11,7 @@ DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 
-KNOWLEDGE_BASE_PATH = PROJECT_ROOT / "knowledge_base.json"
+KNOWLEDGE_BASE_PATH = PROJECT_ROOT / "data" / "knowledge_base.json"
 HISTORY_FILE = PROJECT_ROOT / "chat_history.json"
 TRACE_DIR = PROJECT_ROOT / "data" / "traces"
 

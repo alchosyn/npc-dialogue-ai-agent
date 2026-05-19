@@ -7,18 +7,36 @@ LLM-powered anti-fraud assistant. Users paste a suspicious message, and the agen
 ```
 User Input
   │
-  ├─ input_guard (prompt injection detection)
-  │
   ▼
-ReAct Loop (max 6 steps)
-  ├─ risk_score        Rule-based scoring (13 scam pattern regexes + URL spoofing detection)
-  ├─ search_knowledge  BM25 retrieval over local knowledge base (55 anti-fraud entries)
-  ├─ web_search        Tavily live search
-  ├─ calculator        Password entropy estimation
-  └─ get_current_time  Recency check
-  │
-  ▼
-Langfuse Trace (token count / latency / tool calls per step)
+┌──────────────────────────────────────────────────┐
+│  input_guard                                     │
+│  Prompt injection detection (role override,      │
+│  fake system messages, prompt leak probing)       │
+└──────────────┬───────────────────────────────────┘
+               │ pass
+               ▼
+┌──────────────────────────────────────────────────┐
+│  ReAct Agent Loop  (max 6 steps)                 │
+│                                                  │
+│  ┌────────────┐  ┌─────────────┐  ┌───────────┐ │
+│  │ risk_score  │  │ search_kb   │  │web_search │ │
+│  │ 13 regex +  │  │ BM25, 55    │  │ Tavily    │ │
+│  │ URL spoof   │  │ entries     │  │ live      │ │
+│  └────────────┘  └─────────────┘  └───────────┘ │
+│  ┌────────────┐  ┌─────────────┐                 │
+│  │ calculator  │  │ get_time    │    Memory       │
+│  │ entropy     │  │ recency     │    (multi-turn) │
+│  └────────────┘  └─────────────┘                 │
+└──────────────┬───────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────┐
+│  Langfuse Trace                                  │
+│  token count / latency / tool calls per step     │
+└──────────────────────────────────────────────────┘
+               │
+               ▼
+           Response
 ```
 
 | Layer | Stack |
